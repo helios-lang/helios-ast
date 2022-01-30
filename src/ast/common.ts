@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 
-import * as strings from "./strings.ts";
-import { SP } from "./strings.ts";
+import { Declaration } from "./decl.ts";
+import { AstVisitor } from "./visitors.ts";
 
 export type Identifier = string & { __identifierBrand: any };
 export type Path = Identifier[];
@@ -58,7 +58,7 @@ export const optTypedIdent = (
 });
 
 export abstract class AstNode {
-  abstract stringify(): StringifyResult;
+  abstract accept<R, V extends AstVisitor<R>>(visitor: V): R;
 }
 
 export class Comment extends AstNode {
@@ -66,46 +66,10 @@ export class Comment extends AstNode {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      strings.symbol.commentStart,
-      SP,
-      this.message,
-      // strings.symbol.commentEnd,
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitComment(this);
   }
 }
-
-export function toParameterList(
-  params: OptionallyTypedIdentifier[],
-  separator = strings.symbol.functionParameterSeparator
-): StringifyResult {
-  return params.flatMap(({ identifier, type_ }, index, array) => {
-    const stringified = [String(identifier)];
-
-    if (type_)
-      stringified.push(strings.symbol.typeAnnotation, SP, String(type_));
-
-    if (index === array.length - 1) return stringified;
-    return stringified.concat(separator, SP);
-  });
-}
-
-export function toSeparatedList(
-  items: AstNode[],
-  separator = SP,
-  addSpace = false
-): StringifyResult {
-  return items.flatMap((item, index, array) => {
-    if (index === array.length - 1) return item.stringify();
-    return addSpace
-      ? [...item.stringify(), separator, SP]
-      : [...item.stringify(), separator];
-  });
-}
-
-export abstract class Declaration extends AstNode {}
-export abstract class Expression extends AstNode {}
 
 export type Program = TopLevelNode[];
 export type TopLevelNode = Comment | Declaration;

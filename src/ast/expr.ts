@@ -1,27 +1,25 @@
-import * as strings from "./strings.ts";
-import { BEGIN, CONT, END, SP } from "./strings.ts";
-
 import {
-  Declaration,
-  Expression,
+  AstNode,
   Identifier,
   Literal,
   Operator,
   OptionallyTypedIdentifier,
   OptionalType,
   Path,
-  StringifyResult,
-  toParameterList,
-  toSeparatedList,
 } from "./common.ts";
+
+import { Declaration } from "./decl.ts";
+import { AstVisitor } from "./visitors.ts";
+
+export abstract class Expression extends AstNode {}
 
 export class IdentifierExpression extends Expression {
   constructor(readonly identifier: Identifier) {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [this.identifier];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitIdentifierExpression(this);
   }
 }
 
@@ -30,14 +28,8 @@ export class LiteralExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      `${
-        this.literal.kind === "float"
-          ? this.literal.value.toFixed(1)
-          : this.literal.value
-      }`,
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitLiteralExpression(this);
   }
 }
 
@@ -46,15 +38,8 @@ export class ListExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      "[",
-      ...this.contents.flatMap((expr, index, array) => {
-        if (index === array.length - 1) return expr.stringify();
-        return [...expr.stringify(), strings.symbol.listSeparator, SP];
-      }),
-      "]",
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitListExpression(this);
   }
 }
 
@@ -66,19 +51,8 @@ export class CallExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      typeof this.function_ === "string"
-        ? this.function_
-        : this.function_.join(strings.symbol.modulePathSeparator),
-      strings.symbol.functionInvokeStart,
-      ...toSeparatedList(
-        this.arguments_,
-        strings.symbol.functionParameterSeparator,
-        true
-      ),
-      strings.symbol.functionInvokeEnd,
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitCallExpression(this);
   }
 }
 
@@ -87,19 +61,8 @@ export class DotExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return this.components.flatMap((component, index, array) => {
-      const stringifyComponent = () => {
-        if (typeof component === "string") return String(component);
-        return component.stringify();
-      };
-
-      if (index === array.length - 1) {
-        return stringifyComponent();
-      } else {
-        return [...stringifyComponent(), strings.symbol.recordPathSeparator];
-      }
-    });
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitDotExpression(this);
   }
 }
 
@@ -108,8 +71,8 @@ export class UnaryExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [this.operator, ...this.expression.stringify()];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitUnaryExpression(this);
   }
 }
 
@@ -122,14 +85,8 @@ export class BinaryExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      ...this.lhs.stringify(),
-      SP,
-      this.operator,
-      SP,
-      ...this.rhs.stringify(),
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitBinaryExpression(this);
   }
 }
 
@@ -138,8 +95,8 @@ export class BlockExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [BEGIN, ...toSeparatedList(this.items, CONT), END];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitBlockExpression(this);
   }
 }
 
@@ -152,14 +109,7 @@ export class LambdaExpression extends Expression {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      strings.keyword.lambda,
-      ...toParameterList(this.parameters),
-      SP,
-      strings.symbol.lambdaBegin,
-      SP,
-      ...this.body.stringify(),
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitLambdaExpression(this);
   }
 }

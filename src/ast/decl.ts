@@ -1,16 +1,15 @@
-import * as strings from "./strings.ts";
-import { BEGIN, CONT, END, SKIP_NL, SP } from "./strings.ts";
-
 import {
-  Declaration,
-  Expression,
+  AstNode,
   Identifier,
   OptionallyTypedIdentifier,
   OptionalType,
-  StringifyResult,
-  toParameterList,
   TypedIdentifier,
 } from "./common.ts";
+
+import { Expression } from "./expr.ts";
+import { AstVisitor } from "./visitors.ts";
+
+export abstract class Declaration extends AstNode {}
 
 export class BindingDeclaration extends Declaration {
   constructor(
@@ -21,16 +20,8 @@ export class BindingDeclaration extends Declaration {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      strings.keyword.immutableBinding,
-      SP,
-      this.identifier,
-      SP,
-      strings.symbol.bindingOperator,
-      SP,
-      ...this.value.stringify(),
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitBindingDeclaration(this);
   }
 }
 
@@ -44,21 +35,8 @@ export class FunctionDeclaration extends Declaration {
     super();
   }
 
-  stringify(): StringifyResult {
-    return [
-      strings.keyword.function,
-      SP,
-      this.identifier,
-      strings.symbol.functionInvokeStart,
-      ...toParameterList(this.parameters),
-      strings.symbol.functionInvokeEnd,
-      SP,
-      ...(this.return_
-        ? [strings.symbol.functionReturn, SP, String(this.return_), SP]
-        : []),
-      strings.symbol.functionBegin,
-      ...this.body.stringify(),
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitFunctionDeclaration(this);
   }
 }
 
@@ -70,39 +48,7 @@ export class RecordTypeDeclaration extends Declaration {
     super();
   }
 
-  stringifyRecord(): string[] {
-    return [
-      strings.symbol.recordBegin,
-      ...(this.fields
-        ? [
-            BEGIN,
-            ...this.fields.flatMap(({ identifier, type_ }, index, array) => {
-              const stringified = [
-                String(identifier),
-                strings.symbol.typeAnnotation,
-                SP,
-                String(type_),
-              ];
-              if (index === array.length - 1) return stringified;
-              return [...stringified, strings.symbol.recordSeparator, CONT];
-            }),
-            END,
-          ]
-        : []),
-      strings.symbol.recordEnd,
-    ];
-  }
-
-  stringify(): StringifyResult {
-    return [
-      strings.keyword.type,
-      SP,
-      String(this.identifier),
-      SP,
-      strings.symbol.typeBegin,
-      ...(this.fields
-        ? [BEGIN, ...this.stringifyRecord(), END, SKIP_NL]
-        : [SP, ...this.stringifyRecord()]),
-    ];
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitRecordTypeDeclaration(this);
   }
 }

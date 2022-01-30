@@ -1,12 +1,13 @@
 import * as common from "./common.ts";
-import * as strings from "./strings.ts";
+import * as $g from "./sigils.ts";
+import { StringifyResult, StringifyVisitor } from "./visitors.ts";
 
 export * from "./common.ts";
-export * from "./expr.ts";
 export * from "./decl.ts";
+export * from "./expr.ts";
 
 function indent(times: number) {
-  return strings.SP.repeat(Math.max(0, times));
+  return $g.SP.repeat(Math.max(0, times));
 }
 
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
@@ -17,22 +18,22 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
     if (!token.startsWith("<@@")) {
       yield token;
     } else {
-      if (token === strings.SKIP_NL) continue;
-      else yield strings.NL;
+      if (token === $g.SKIP_NL) continue;
+      else yield $g.NL;
 
       switch (token) {
-        case strings.BEGIN:
+        case $g.BEGIN:
           currIndent += indentationCount;
           yield indent(currIndent);
           continue;
-        case strings.CONT:
+        case $g.CONT:
           yield indent(currIndent);
           continue;
-        case strings.END:
+        case $g.END:
           currIndent = Math.max(0, currIndent - indentationCount);
           yield indent(currIndent);
           continue;
-        case strings.RESET:
+        case $g.RESET:
           currIndent = 0;
           continue;
         default:
@@ -40,19 +41,6 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
       }
     }
   }
-}
-
-function processIndents(decl: common.Declaration, indentationCount: number) {
-  const tokens = decl
-    .stringify()
-    .filter((token): token is string => Boolean(token));
-
-  const processedTokens: string[] = [];
-  for (const token of processIndentsGenerator(tokens, indentationCount)) {
-    processedTokens.push(token);
-  }
-
-  return processedTokens;
 }
 
 type StringifyOptions = {
@@ -64,16 +52,29 @@ export function stringify(
   program: common.Program,
   options: StringifyOptions = {}
 ) {
-  return (
-    options.stripComments
-      ? program.filter((item) => !(item instanceof common.Comment))
-      : program
-  )
-    .flatMap((decl) => [
-      ...processIndents(decl, options.indentationCount ?? 2),
-      strings.NL,
-    ])
-    .flat()
-    .join("")
-    .trim();
+  let _program = program;
+  if (options.stripComments) {
+    _program = program.filter((item) => !(item instanceof common.Comment));
+  }
+
+  const processTopLevelNodes = (node: common.TopLevelNode) => [
+    ...processIndents(node, options.indentationCount ?? 2),
+    $g.NL,
+  ];
+
+  return _program.flatMap(processTopLevelNodes).join("").trim();
+}
+
+function processIndents(node: common.TopLevelNode, indentationCount: number) {
+  const visitor = new StringifyVisitor();
+  const tokens = node
+    .accept<StringifyResult, typeof visitor>(visitor)
+    .filter((token): token is string => Boolean(token));
+
+  const processedTokens: string[] = [];
+  for (const token of processIndentsGenerator(tokens, indentationCount)) {
+    processedTokens.push(token);
+  }
+
+  return processedTokens;
 }
