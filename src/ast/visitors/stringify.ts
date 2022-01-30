@@ -1,12 +1,13 @@
-import * as $s from "./strings.ts";
-import * as $g from "./sigils.ts";
-import * as common from "./common.ts";
+import * as $g from "../sigils.ts";
+import * as $s from "../strings.ts";
+import * as astCommon from "../common.ts";
+import * as visitorCommon from "./common.ts";
 
 import {
   BindingDeclaration,
   FunctionDeclaration,
   RecordTypeDeclaration,
-} from "./decl.ts";
+} from "../decl.ts";
 
 import {
   IdentifierExpression,
@@ -18,37 +19,13 @@ import {
   BinaryExpression,
   BlockExpression,
   LambdaExpression,
-} from "./expr.ts";
-
-export abstract class AstVisitor<R> {
-  // --- MISCELLANEOUS ---
-
-  abstract visitComment(comment: common.Comment): R;
-
-  // --- DECLARATIONS ---
-
-  abstract visitBindingDeclaration(decl: BindingDeclaration): R;
-  abstract visitFunctionDeclaration(decl: FunctionDeclaration): R;
-  abstract visitRecordTypeDeclaration(decl: RecordTypeDeclaration): R;
-
-  // --- EXPRESSIONS ---
-
-  abstract visitIdentifierExpression(expr: IdentifierExpression): R;
-  abstract visitLiteralExpression(expr: LiteralExpression): R;
-  abstract visitListExpression(expr: ListExpression): R;
-  abstract visitCallExpression(expr: CallExpression): R;
-  abstract visitDotExpression(expr: DotExpression): R;
-  abstract visitUnaryExpression(expr: UnaryExpression): R;
-  abstract visitBinaryExpression(expr: BinaryExpression): R;
-  abstract visitBlockExpression(expr: BlockExpression): R;
-  abstract visitLambdaExpression(expr: LambdaExpression): R;
-}
+} from "../expr.ts";
 
 export type StringifyResult = (string | false)[];
 
-export class StringifyVisitor extends AstVisitor<StringifyResult> {
+export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> {
   private toSeparatedList(
-    nodes: common.AstNode[],
+    nodes: astCommon.AstNode[],
     separator = $s.symbol.listSeparator,
     addSpace = true
   ): StringifyResult {
@@ -62,7 +39,10 @@ export class StringifyVisitor extends AstVisitor<StringifyResult> {
   }
 
   private toParameterList(
-    parameters: (common.OptionallyTypedIdentifier | common.TypedIdentifier)[],
+    parameters: (
+      | astCommon.OptionallyTypedIdentifier
+      | astCommon.TypedIdentifier
+    )[],
     separator = $s.symbol.functionParameterSeparator
   ): StringifyResult {
     return parameters.flatMap(({ identifier, type_ }, index, array) => {
@@ -73,7 +53,7 @@ export class StringifyVisitor extends AstVisitor<StringifyResult> {
     });
   }
 
-  visitComment(comment: common.Comment): StringifyResult {
+  visitComment(comment: astCommon.Comment): StringifyResult {
     return [
       $s.symbol.commentStart,
       comment.message.trim().length > 0 && $g.SP,
@@ -224,4 +204,82 @@ export class StringifyVisitor extends AstVisitor<StringifyResult> {
       ...expr.body.accept<StringifyResult, this>(this),
     ];
   }
+}
+
+// -----------------------------------------------------------------------------
+
+type StringifyOptions = {
+  indentationCount?: number;
+  stripComments?: boolean;
+};
+
+export function stringify(
+  program: astCommon.Program,
+  options: StringifyOptions = {}
+): string {
+  let _program = program;
+  if (options.stripComments) {
+    _program = program.filter((item) => !(item instanceof astCommon.Comment));
+  }
+
+  const processTopLevelNodes = (node: astCommon.TopLevelNode) => [
+    ...processIndents(node, options.indentationCount ?? 2),
+    $g.NL,
+  ];
+
+  return _program.flatMap(processTopLevelNodes).join("").trim();
+}
+
+function processIndents(
+  node: astCommon.TopLevelNode,
+  indentationCount: number
+) {
+  const visitor = new StringifyVisitor();
+  const tokens = node
+    .accept<StringifyResult, typeof visitor>(visitor)
+    .filter((token): token is string => Boolean(token));
+
+  const processedTokens: string[] = [];
+  for (const token of processIndentsGenerator(tokens, indentationCount)) {
+    processedTokens.push(token);
+  }
+
+  return processedTokens;
+}
+
+function* processIndentsGenerator(tokens: string[], indentationCount: number) {
+  let currIndent = 0;
+
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (!token.startsWith("<@@")) {
+      yield token;
+    } else {
+      if (token === $g.SKIP_NL) continue;
+      else yield $g.NL;
+
+      switch (token) {
+        case $g.BEGIN:
+          currIndent += indentationCount;
+          yield indent(currIndent);
+          continue;
+        case $g.CONT:
+          yield indent(currIndent);
+          continue;
+        case $g.END:
+          currIndent = Math.max(0, currIndent - indentationCount);
+          yield indent(currIndent);
+          continue;
+        case $g.RESET:
+          currIndent = 0;
+          continue;
+        default:
+          yield token;
+      }
+    }
+  }
+}
+
+function indent(times: number) {
+  return $g.SP.repeat(Math.max(0, times));
 }

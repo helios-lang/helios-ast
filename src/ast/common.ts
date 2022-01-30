@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { Declaration } from "./decl.ts";
-import { AstVisitor } from "./visitors.ts";
+import { AstVisitor } from "./visitors/mod.ts";
 
 export type Identifier = string & { __identifierBrand: any };
 export type Path = Identifier[];

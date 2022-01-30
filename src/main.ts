@@ -60,6 +60,7 @@ const distanceFunction: ast.TopLevelNode[] = [
   ast.comment("let a = point::Point(x: 1.0, y: 2.0)"),
   ast.comment("let b = point::Point(x: 2.0, y: 4.0)"),
   ast.comment("assert::eq(point::distance_from(a, b), ???)"),
+  ast.comment("```"),
   new ast.FunctionDeclaration(
     ast.ident("distance"),
     [

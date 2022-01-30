@@ -9,7 +9,7 @@ import {
 } from "./common.ts";
 
 import { Declaration } from "./decl.ts";
-import { AstVisitor } from "./visitors.ts";
+import { AstVisitor } from "./visitors/mod.ts";
 
 export abstract class Expression extends AstNode {}
 
