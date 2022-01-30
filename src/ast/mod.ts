@@ -1,11 +1,12 @@
 import * as common from "./common.ts";
+import * as strings from "./strings.ts";
 
 export * from "./common.ts";
 export * from "./expr.ts";
 export * from "./decl.ts";
 
 function indent(times: number) {
-  return common.SP.repeat(Math.max(0, times));
+  return strings.SP.repeat(Math.max(0, times));
 }
 
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
@@ -16,22 +17,22 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
     if (!token.startsWith("<@@")) {
       yield token;
     } else {
-      if (token === common.SKIP_NL) continue;
-      else yield common.NL;
+      if (token === strings.SKIP_NL) continue;
+      else yield strings.NL;
 
       switch (token) {
-        case common.BEGIN:
+        case strings.BEGIN:
           currIndent += indentationCount;
           yield indent(currIndent);
           continue;
-        case common.CONT:
+        case strings.CONT:
           yield indent(currIndent);
           continue;
-        case common.END:
+        case strings.END:
           currIndent = Math.max(0, currIndent - indentationCount);
           yield indent(currIndent);
           continue;
-        case common.RESET:
+        case strings.RESET:
           currIndent = 0;
           continue;
         default:
@@ -70,7 +71,7 @@ export function stringify(
   )
     .flatMap((decl) => [
       ...processIndents(decl, options.indentationCount ?? 2),
-      common.NL,
+      strings.NL,
     ])
     .flat()
     .join("")

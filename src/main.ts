@@ -1,11 +1,14 @@
 import * as ast from "./ast/mod.ts";
 
-const program: ast.Program = [
+const pointRecord: ast.TopLevelNode[] = [
   ast.comment("A representation of a point in two-dimensional space."),
   new ast.RecordTypeDeclaration(ast.ident("Point"), [
     ast.typedIdent("x", ast.type("Float")),
     ast.typedIdent("y", ast.type("Float")),
   ]),
+];
+
+const coordSumFunction: ast.TopLevelNode[] = [
   ast.comment("This function accepts any value with `x`, `y` and `z` fields."),
   new ast.FunctionDeclaration(
     ast.ident("coord_sum"),
@@ -45,6 +48,9 @@ const program: ast.Program = [
       ]),
     ])
   ),
+];
+
+const distanceFunction: ast.TopLevelNode[] = [
   ast.comment("Calculates the distance between this point and another point."),
   ast.comment(""),
   ast.comment("# Example"),
@@ -96,6 +102,12 @@ const program: ast.Program = [
     ])
   ),
 ];
+
+const program: ast.Program = new Array<ast.TopLevelNode>().concat(
+  pointRecord,
+  distanceFunction,
+  coordSumFunction
+);
 
 const stringified = ast.stringify(program);
 console.log(stringified);

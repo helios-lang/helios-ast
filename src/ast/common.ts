@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import * as strings from "./strings.ts";
+import { SP } from "./strings.ts";
 
 export type Identifier = string & { __identifierBrand: any };
 export type Path = Identifier[];
@@ -25,14 +26,6 @@ export type Atom =
   | { kind: "identifier"; identifier: Identifier }
   | { kind: "literal"; literal: Literal }
   | { kind: "list"; values: Atom[] };
-
-export const NL = "\n";
-export const SP = " ";
-export const BEGIN = "<@@BEGIN@@>";
-export const CONT = "<@@CONT@@>";
-export const END = "<@@END@@>";
-export const SKIP_NL = "<@@SKIP_NL@@>";
-export const RESET = "<@@RESET@@>";
 
 export type StringifyResult = (false | string)[];
 
@@ -114,4 +107,5 @@ export function toSeparatedList(
 export abstract class Declaration extends AstNode {}
 export abstract class Expression extends AstNode {}
 
-export type Program = (Comment | Declaration)[];
+export type Program = TopLevelNode[];
+export type TopLevelNode = Comment | Declaration;

@@ -1,10 +1,8 @@
 import * as strings from "./strings.ts";
+import { BEGIN, CONT, END, SP } from "./strings.ts";
 
 import {
-  BEGIN,
-  CONT,
   Declaration,
-  END,
   Expression,
   Identifier,
   Literal,
@@ -12,7 +10,6 @@ import {
   OptionallyTypedIdentifier,
   OptionalType,
   Path,
-  SP,
   StringifyResult,
   toParameterList,
   toSeparatedList,

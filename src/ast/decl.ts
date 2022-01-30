@@ -1,16 +1,12 @@
 import * as strings from "./strings.ts";
+import { BEGIN, CONT, END, SKIP_NL, SP } from "./strings.ts";
 
 import {
-  BEGIN,
-  CONT,
   Declaration,
-  END,
   Expression,
   Identifier,
   OptionallyTypedIdentifier,
   OptionalType,
-  SKIP_NL,
-  SP,
   StringifyResult,
   toParameterList,
   TypedIdentifier,
