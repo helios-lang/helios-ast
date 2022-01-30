@@ -1,40 +1,67 @@
 import * as ast from "./ast/mod.ts";
 
-/*
-const program = ast.prog(
-  ast.decl.func(
-    ast.ident("distance"),
-    [],
-    [
-      ast.decl.bind(
-        ast.ident("x"),
-        ast.exp.call(ast.path("math", "pow"), [
-          ast.expr.binary("-", ast.expr.dot("b", "x"), ast.expr.dot("a", "x")),
-          ast.expr.float(2.0),
-        ])
-      ),
-      ast.decl.bind(
-        ast.ident("y"),
-        ast.exp.call(ast.path("math", "pow"), [
-          ast.expr.binary("-", ast.expr.dot("b", "y"), ast.expr.dot("a", "y")),
-          ast.expr.float(2.0),
-        ])
-      ),
-      ast.exp.call(ast.path("math", "sqrt"), [
-        ast.ident("dx"),
-        ast.ident("dy"),
-      ]),
-    ]
-  )
-);
-*/
-
 const program: ast.Program = [
+  ast.comment("A representation of a point in two-dimensional space."),
+  new ast.RecordTypeDeclaration(ast.ident("Point"), [
+    ast.typedIdent("x", ast.type("Float")),
+    ast.typedIdent("y", ast.type("Float")),
+  ]),
+  ast.comment("This function accepts any value with `x`, `y` and `z` fields."),
+  new ast.FunctionDeclaration(
+    ast.ident("coord_sum"),
+    [ast.optTypedIdent("values", ast.inferType())],
+    ast.inferType(),
+    new ast.BlockExpression([
+      new ast.BindingDeclaration(
+        ast.ident("sum"),
+        ast.inferType(),
+        new ast.LambdaExpression(
+          [ast.optTypedIdent("xs", ast.inferType())],
+          ast.inferType(),
+          new ast.CallExpression(ast.path("list", "reduce"), [
+            new ast.IdentifierExpression(ast.ident("xs")),
+            new ast.LiteralExpression({ kind: "integer", value: 0 }),
+            new ast.LambdaExpression(
+              [
+                ast.optTypedIdent("acc", ast.inferType()),
+                ast.optTypedIdent("cur", ast.inferType()),
+              ],
+              ast.inferType(),
+              new ast.BinaryExpression(
+                "+",
+                new ast.IdentifierExpression(ast.ident("acc")),
+                new ast.IdentifierExpression(ast.ident("cur"))
+              )
+            ),
+          ])
+        )
+      ),
+      new ast.CallExpression(ast.ident("sum"), [
+        new ast.ListExpression([
+          new ast.DotExpression([ast.ident("value"), ast.ident("x")]),
+          new ast.DotExpression([ast.ident("value"), ast.ident("y")]),
+          new ast.DotExpression([ast.ident("value"), ast.ident("z")]),
+        ]),
+      ]),
+    ])
+  ),
+  ast.comment("Calculates the distance between this point and another point."),
+  ast.comment(""),
+  ast.comment("# Example"),
+  ast.comment(""),
+  ast.comment("```helios"),
+  ast.comment("#? import point"),
+  ast.comment("let a = point::Point(x: 1.0, y: 2.0)"),
+  ast.comment("let b = point::Point(x: 2.0, y: 4.0)"),
+  ast.comment("assert::eq(point::distance_from(a, b), ???)"),
   new ast.FunctionDeclaration(
     ast.ident("distance"),
-    [ast.param("a", ast.inferType()), ast.param("b", ast.inferType())],
-    ast.inferType(),
     [
+      ast.optTypedIdent("a", ast.inferType()),
+      ast.optTypedIdent("b", ast.inferType()),
+    ],
+    ast.inferType(),
+    new ast.BlockExpression([
       new ast.BindingDeclaration(
         ast.ident("dx"),
         ast.inferType(),
@@ -66,53 +93,9 @@ const program: ast.Program = [
           new ast.IdentifierExpression(ast.ident("dy"))
         ),
       ]),
-    ]
+    ])
   ),
 ];
 
-const INDENTATION_COUNT = 2;
-
-function indent(times: number) {
-  return ast.SP.repeat(Math.max(0, times));
-}
-
-function processIndents(decl: ast.Declaration) {
-  let currIndent = 0;
-  return decl
-    .stringify()
-    .filter((token): token is string => Boolean(token))
-    .flatMap((token) => {
-      // Short-circuit the check to speed things up
-      if (!token.startsWith("<")) return token;
-
-      if (token === ast.BEGIN) {
-        currIndent += INDENTATION_COUNT;
-        return [ast.NL, indent(currIndent)];
-      }
-
-      if (token === ast.CONT) {
-        return [ast.NL, indent(currIndent)];
-      }
-
-      if (token === ast.END) {
-        currIndent = Math.max(0, currIndent - INDENTATION_COUNT);
-        return [ast.NL, indent(currIndent)];
-      }
-
-      if (token === ast.RESET) {
-        return [ast.NL];
-      }
-
-      return token;
-    });
-}
-
-function stringify(program: ast.Program) {
-  return program
-    .map(processIndents)
-    .flatMap((decl) => [...decl, ast.NL])
-    .join("")
-    .trim();
-}
-
-console.log(stringify(program));
+const stringified = ast.stringify(program);
+console.log(stringified);
