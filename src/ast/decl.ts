@@ -1,10 +1,10 @@
 import {
   AstNode,
   IdentifierNode,
-  OptionallyTypedIdentifier,
-  OptionalType,
+  MaybeTypedIdentifier,
   PathNode,
-  TypedIdentifier,
+  TypeNodeChild,
+  TypeNodeOrNull,
 } from "./common.ts";
 
 import { Expression } from "./expr.ts";
@@ -35,7 +35,7 @@ export class ImportDeclarationGroup extends Declaration {
 export class BindingDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly type_: OptionalType,
+    readonly identifierType: TypeNodeOrNull,
     readonly value: Expression
   ) {
     super();
@@ -49,8 +49,8 @@ export class BindingDeclaration extends Declaration {
 export class FunctionDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly parameters: OptionallyTypedIdentifier[],
-    readonly returnType: OptionalType,
+    readonly parameters: MaybeTypedIdentifier[],
+    readonly returnType: TypeNodeOrNull,
     readonly body: Expression
   ) {
     super();
@@ -61,15 +61,15 @@ export class FunctionDeclaration extends Declaration {
   }
 }
 
-export class RecordTypeDeclaration extends Declaration {
+export class TypeDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly fields?: TypedIdentifier[]
+    readonly body: TypeNodeChild
   ) {
     super();
   }
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitRecordTypeDeclaration(this);
+    return visitor.visitTypeDeclaration(this);
   }
 }

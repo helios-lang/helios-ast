@@ -6,7 +6,7 @@ import {
   FunctionDeclaration,
   ImportDeclaration,
   ImportDeclarationGroup,
-  RecordTypeDeclaration,
+  TypeDeclaration,
 } from "../decl.ts";
 
 import {
@@ -46,9 +46,12 @@ export abstract class AstVisitor<R> {
 
   // --- MISCELLANEOUS ---
 
-  abstract visitCommentNode(comment: common.CommentNode): R;
-  abstract visitPathNode(path: common.PathNode): R;
-  abstract visitIdentifierNode(expr: common.IdentifierNode): R;
+  abstract visitCommentNode(node: common.CommentNode): R;
+  abstract visitPathNode(node: common.PathNode): R;
+  abstract visitAnonymousRecordNode(node: common.AnonymousRecordNode): R;
+  abstract visitIdentifierNode(node: common.IdentifierNode): R;
+  abstract visitModuleNode(node: common.ModuleIdentifierNode): R;
+  abstract visitTypeNode(node: common.TypeNode): R;
 
   // --- DECLARATIONS ---
 
@@ -56,7 +59,7 @@ export abstract class AstVisitor<R> {
   abstract visitImportDeclarationGroup(decl: ImportDeclarationGroup): R;
   abstract visitBindingDeclaration(decl: BindingDeclaration): R;
   abstract visitFunctionDeclaration(decl: FunctionDeclaration): R;
-  abstract visitRecordTypeDeclaration(decl: RecordTypeDeclaration): R;
+  abstract visitTypeDeclaration(decl: TypeDeclaration): R;
 
   // --- EXPRESSIONS ---
 

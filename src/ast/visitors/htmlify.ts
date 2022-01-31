@@ -7,7 +7,7 @@ import {
   FunctionDeclaration,
   ImportDeclaration,
   ImportDeclarationGroup,
-  RecordTypeDeclaration,
+  TypeDeclaration,
 } from "../decl.ts";
 
 import {
@@ -72,7 +72,7 @@ export type HtmlifyResult = (false | HtmlElement)[];
 
 export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   private toSeparatedList(
-    nodes: astCommon.AstNode[],
+    nodes: ReadonlyArray<astCommon.AstNode>,
     separator = s([HtmlClass.SYMBOL], t(this.symbols.listSeparator)),
     addSpace = true
   ): HtmlifyResult {
@@ -86,10 +86,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   private toParameterList(
-    parameters: (
-      | astCommon.OptionallyTypedIdentifier
-      | astCommon.TypedIdentifier
-    )[],
+    parameters: ReadonlyArray<astCommon.MaybeTypedIdentifier>,
     separator = s(
       [HtmlClass.SYMBOL],
       t(this.symbols.functionParameterSeparator)
@@ -97,35 +94,37 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   ): readonly [HtmlifyResult, boolean] {
     let hasAnnotation = false;
 
-    const list = parameters.flatMap(({ identifier, type_ }, index, array) => {
-      const htmlified: HtmlifyResult = identifier.accept(this);
+    const list = parameters.flatMap(
+      ({ identifier, identifierType }, index, array) => {
+        const htmlified: HtmlifyResult = identifier.accept(this);
 
-      if (type_) {
-        if (!hasAnnotation) hasAnnotation = true;
-        htmlified.push(
-          s([HtmlClass.SYMBOL], t(this.symbols.typeAnnotation)),
-          g.SP,
-          s([HtmlClass.TYPE], t(type_))
-        );
+        if (identifierType) {
+          if (!hasAnnotation) hasAnnotation = true;
+          htmlified.push(
+            s([HtmlClass.SYMBOL], t(this.symbols.typeAnnotation)),
+            g.SP,
+            ...identifierType.accept<HtmlifyResult, this>(this)
+          );
+        }
+
+        if (index === array.length - 1) return htmlified;
+        return htmlified.concat(separator, g.SP);
       }
-
-      if (index === array.length - 1) return htmlified;
-      return htmlified.concat(separator, g.SP);
-    });
+    );
 
     return [list, hasAnnotation] as const;
   }
 
-  visitCommentNode(comment: astCommon.CommentNode): HtmlifyResult {
+  visitCommentNode(node: astCommon.CommentNode): HtmlifyResult {
     const children: HtmlElement[] = [];
-    const commentBegin = comment.isDocComment
+    const commentBegin = node.isDocComment
       ? this.symbols.docCommentBegin
       : this.symbols.commentBegin;
-    const commentEnd = comment.isDocComment
+    const commentEnd = node.isDocComment
       ? this.symbols.docCommentEnd
       : this.symbols.commentEnd;
 
-    const parts = comment.message.split("\n");
+    const parts = node.message.split("\n");
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       children.push(t(commentBegin));
@@ -136,13 +135,81 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [s([HtmlClass.COMMENT], children)];
   }
 
-  visitIdentifierNode(identifier: astCommon.IdentifierNode): HtmlifyResult {
-    return [s([HtmlClass.IDENTIFIER], t(identifier.name))];
+  visitIdentifierNode(node: astCommon.IdentifierNode): HtmlifyResult {
+    return [s([HtmlClass.IDENTIFIER], t(node.name))];
   }
 
-  visitPathNode(path: astCommon.PathNode): HtmlifyResult {
-    return path.components.flatMap((component, index, array) => {
-      const htmlified = [s([HtmlClass.MODULE], t(component.name))];
+  visitModuleNode(node: astCommon.IdentifierNode): HtmlifyResult {
+    return [s([HtmlClass.MODULE], t(node.name))];
+  }
+
+  visitTypeNode({ child }: astCommon.TypeNode): HtmlifyResult {
+    if (child instanceof astCommon.IdentifierNode) {
+      return [s([HtmlClass.TYPE], t(child.name))];
+    } else if (child instanceof astCommon.PathNode) {
+      const { components } = child;
+      return components.flatMap((component, index, array) => {
+        if (index === array.length - 1)
+          return [s([HtmlClass.TYPE], t(component.name))];
+        return [
+          s([HtmlClass.MODULE], t(component.name)),
+          s([HtmlClass.SYMBOL], t(this.symbols.pathSeparator)),
+        ];
+      });
+    } else {
+      return child.accept(this);
+    }
+  }
+
+  visitAnonymousRecordNode(node: astCommon.AnonymousRecordNode): HtmlifyResult {
+    const insertBlock = Boolean(node.fields && node.fields.length >= 4);
+    const body: HtmlifyResult = [];
+
+    if (node.fields && node.fields.length > 0) {
+      body.push(
+        insertBlock && g.BEGIN,
+        ...node.fields.flatMap(
+          ({ identifier, identifierType }, index, array) => {
+            const htmlified: HtmlifyResult = [
+              s(
+                [HtmlClass.CONSTRUCTOR],
+                t(`${identifier.name}${this.symbols.typeAnnotation}`)
+              ),
+              g.SP,
+              // s([HtmlClass.TYPE], t(type_)),
+              ...identifierType.accept<HtmlifyResult, this>(this),
+            ];
+
+            if (index === array.length - 1) return htmlified;
+            return htmlified.concat(
+              s([HtmlClass.SYMBOL], t(this.symbols.recordSeparator)),
+              insertBlock ? g.CONT : g.SP
+            );
+          }
+        ),
+        insertBlock && g.END
+      );
+    }
+
+    return [
+      s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordBegin)),
+      ...body,
+      s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordEnd)),
+    ];
+  }
+
+  visitPathNode(node: astCommon.PathNode): HtmlifyResult {
+    return node.components.flatMap((component, index, array) => {
+      const htmlified = [
+        s(
+          [HtmlClass.MODULE],
+          t(
+            this.options.uppercaseModules
+              ? astCommon.capitalizeModuleName(component.name)
+              : component.name
+          )
+        ),
+      ];
       if (index === array.length - 1) return htmlified;
       return htmlified.concat(
         s([HtmlClass.SYMBOL], t(this.symbols.pathSeparator))
@@ -222,7 +289,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         ? [
             t(this.symbols.functionReturn),
             g.SP,
-            s([HtmlClass.TYPE], t(decl.returnType)),
+            ...decl.returnType.accept<HtmlifyResult, this>(this),
             g.SP,
           ]
         : []),
@@ -232,51 +299,16 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     ];
   }
 
-  visitRecordTypeDeclaration(decl: RecordTypeDeclaration): HtmlifyResult {
-    const insertBlock = Boolean(decl.fields && decl.fields.length >= 4);
-
-    const stringifyRecord = (): HtmlifyResult => {
-      const body: HtmlifyResult = [];
-
-      if (decl.fields && decl.fields.length > 0) {
-        body.push(
-          insertBlock && g.BEGIN,
-          ...decl.fields.flatMap(({ identifier, type_ }, index, array) => {
-            const htmlified: HtmlifyResult = [
-              s(
-                [HtmlClass.CONSTRUCTOR],
-                t(`${identifier.name}${this.symbols.typeAnnotation}`)
-              ),
-              g.SP,
-              s([HtmlClass.TYPE], t(type_)),
-            ];
-
-            if (index === array.length - 1) return htmlified;
-            return htmlified.concat(
-              s([HtmlClass.SYMBOL], t(this.symbols.recordSeparator)),
-              insertBlock ? g.CONT : g.SP
-            );
-          }),
-          insertBlock && g.END
-        );
-      }
-
-      return [
-        s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordBegin)),
-        ...body,
-        s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordEnd)),
-      ];
-    };
-
+  visitTypeDeclaration(decl: TypeDeclaration): HtmlifyResult {
     return [
       s([HtmlClass.KEYWORD], t(this.keywords.type)),
       g.SP,
       s([HtmlClass.TYPE], t(decl.identifier.name)),
       g.SP,
       s([HtmlClass.SYMBOL], t(this.symbols.typeBegin)),
-      ...(insertBlock
-        ? [g.BEGIN, ...stringifyRecord(), g.END, g.SKIP_NL]
-        : [g.SP, ...stringifyRecord(), g.NL]),
+      g.SP,
+      ...decl.body.accept<HtmlifyResult, this>(this),
+      g.NL,
     ];
   }
 
@@ -326,24 +358,25 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
   visitCallExpression(expr: CallExpression): HtmlifyResult {
     const htmlifiedFunctionIdentifier: HtmlifyResult = [];
+
     if (expr.function_ instanceof astCommon.IdentifierNode) {
       htmlifiedFunctionIdentifier.push(
         s([HtmlClass.FUNCTION], t(expr.function_.name))
       );
     } else {
       const components = expr.function_.components;
-      for (let i = 0; i < components.length; i++) {
-        const component = components[i];
-        if (i === components.length - 1) {
-          htmlifiedFunctionIdentifier.push(
-            s([HtmlClass.FUNCTION], t(component.name))
-          );
-        } else {
-          htmlifiedFunctionIdentifier.push(
-            s([HtmlClass.MODULE], t(component.name)),
-            s([HtmlClass.SYMBOL], t(this.symbols.pathSeparator))
-          );
-        }
+      const allButLast = components.slice(0, -1);
+      const last = components.at(-1);
+
+      htmlifiedFunctionIdentifier.push(
+        ...new astCommon.PathNode(allButLast).accept<HtmlifyResult, this>(this)
+      );
+
+      if (last) {
+        htmlifiedFunctionIdentifier.push(
+          s([HtmlClass.SYMBOL], t(this.symbols.pathSeparator)),
+          s([HtmlClass.FUNCTION], t(last.name))
+        );
       }
     }
 

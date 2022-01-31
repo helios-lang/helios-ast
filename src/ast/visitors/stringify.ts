@@ -7,7 +7,7 @@ import {
   FunctionDeclaration,
   ImportDeclaration,
   ImportDeclarationGroup,
-  RecordTypeDeclaration,
+  TypeDeclaration,
 } from "../decl.ts";
 
 import {
@@ -26,7 +26,7 @@ export type StringifyResult = (string | false)[];
 
 export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> {
   private toSeparatedList(
-    nodes: astCommon.AstNode[],
+    nodes: ReadonlyArray<astCommon.AstNode>,
     separator = this.symbols.listSeparator,
     addSpace = true
   ): StringifyResult {
@@ -40,30 +40,36 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   private toParameterList(
-    parameters: (
-      | astCommon.OptionallyTypedIdentifier
-      | astCommon.TypedIdentifier
-    )[],
+    parameters: ReadonlyArray<astCommon.MaybeTypedIdentifier>,
     separator = this.symbols.functionParameterSeparator
   ): StringifyResult {
-    return parameters.flatMap(({ identifier, type_ }, index, array) => {
-      const stringified = identifier.accept<StringifyResult, this>(this);
-      if (type_)
-        stringified.push(this.symbols.typeAnnotation, sigils.SP, type_);
-      if (index === array.length - 1) return stringified;
-      return stringified.concat(separator, sigils.SP);
-    });
+    return parameters.flatMap(
+      ({ identifier, identifierType }, index, array) => {
+        const stringified = identifier.accept<StringifyResult, this>(this);
+
+        if (identifierType) {
+          stringified.push(
+            this.symbols.typeAnnotation,
+            sigils.SP,
+            ...identifierType.accept<StringifyResult, this>(this)
+          );
+        }
+
+        if (index === array.length - 1) return stringified;
+        return stringified.concat(separator, sigils.SP);
+      }
+    );
   }
 
-  visitCommentNode(comment: astCommon.CommentNode): StringifyResult {
-    const commentBegin = comment.isDocComment
+  visitCommentNode(node: astCommon.CommentNode): StringifyResult {
+    const commentBegin = node.isDocComment
       ? this.symbols.docCommentBegin
       : this.symbols.commentBegin;
-    const commentEnd = comment.isDocComment
+    const commentEnd = node.isDocComment
       ? this.symbols.docCommentEnd
       : this.symbols.commentEnd;
 
-    return comment.message.split("\n").flatMap((content, index, array) => {
+    return node.message.split("\n").flatMap((content, index, array) => {
       if (content.length === 0)
         return [commentBegin, index < array.length - 1 && commentEnd];
 
@@ -76,16 +82,59 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     });
   }
 
-  visitIdentifierNode(identifier: astCommon.IdentifierNode): StringifyResult {
-    return [identifier.name];
+  visitIdentifierNode(node: astCommon.IdentifierNode): StringifyResult {
+    return [node.name];
   }
 
-  visitPathNode(path: astCommon.PathNode): StringifyResult {
-    return path.components.flatMap((component, index, array) => {
-      const stringified = component.accept<StringifyResult, this>(this);
+  visitModuleNode(node: astCommon.ModuleIdentifierNode): StringifyResult {
+    return [node.name];
+  }
+
+  visitTypeNode(node: astCommon.TypeNode): StringifyResult {
+    return node.child.accept(this);
+  }
+
+  visitPathNode(node: astCommon.PathNode): StringifyResult {
+    return node.components.flatMap((component, index, array) => {
+      const stringified: StringifyResult = [
+        this.options.uppercaseModules
+          ? astCommon.capitalizeModuleName(component.name)
+          : component.name,
+      ];
       if (index === array.length - 1) return stringified;
       return stringified.concat(this.symbols.pathSeparator);
     });
+  }
+
+  visitAnonymousRecordNode(
+    node: astCommon.AnonymousRecordNode
+  ): StringifyResult {
+    const insertBlock = Boolean(node.fields && node.fields?.length >= 4);
+    const body: StringifyResult = [];
+
+    if (node.fields && node.fields.length > 0) {
+      body.push(
+        insertBlock && sigils.BEGIN,
+        ...node.fields.flatMap(
+          ({ identifier, identifierType }, index, array) => {
+            const stringified: StringifyResult = [
+              ...identifier.accept<StringifyResult, this>(this),
+              this.symbols.typeAnnotation,
+              sigils.SP,
+              ...identifierType.accept<StringifyResult, this>(this),
+            ];
+            if (index === array.length - 1) return stringified;
+            return stringified.concat(
+              this.symbols.recordSeparator,
+              insertBlock ? sigils.CONT : sigils.SP
+            );
+          }
+        ),
+        insertBlock && sigils.END
+      );
+    }
+
+    return [this.symbols.recordBegin, ...body, this.symbols.recordEnd];
   }
 
   visitImportDeclaration(decl: ImportDeclaration): StringifyResult {
@@ -147,53 +196,25 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       ...this.toParameterList(decl.parameters),
       this.symbols.functionInvokeEnd,
       sigils.SP,
-      ...(decl.returnType
-        ? [this.symbols.functionReturn, sigils.SP, decl.returnType, sigils.SP]
-        : []),
+      // ...(decl.returnType
+      //   ? [this.symbols.functionReturn, sigils.SP, decl.returnType, sigils.SP]
+      //   : []),
       this.symbols.functionBegin,
       !(decl.body instanceof BlockExpression) && sigils.SP,
       ...decl.body.accept<StringifyResult, this>(this),
     ];
   }
 
-  visitRecordTypeDeclaration(decl: RecordTypeDeclaration): StringifyResult {
-    const insertBlock = Boolean(decl.fields && decl.fields?.length >= 4);
-
-    const stringifyRecord = (): StringifyResult => {
-      const body: StringifyResult = [];
-
-      if (decl.fields && decl.fields.length > 0) {
-        body.push(
-          insertBlock && sigils.BEGIN,
-          ...decl.fields.flatMap(({ identifier, type_ }, index, array) => {
-            const stringified: StringifyResult = [
-              ...identifier.accept<StringifyResult, this>(this),
-              this.symbols.typeAnnotation,
-              sigils.SP,
-              type_,
-            ];
-            if (index === array.length - 1) return stringified;
-            return stringified.concat(
-              this.symbols.recordSeparator,
-              insertBlock ? sigils.CONT : sigils.SP
-            );
-          }),
-          insertBlock && sigils.END
-        );
-      }
-
-      return [this.symbols.recordBegin, ...body, this.symbols.recordEnd];
-    };
-
+  visitTypeDeclaration(decl: TypeDeclaration): StringifyResult {
     return [
       this.keywords.type,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
       sigils.SP,
       this.symbols.typeBegin,
-      ...(insertBlock
-        ? [sigils.BEGIN, ...stringifyRecord(), sigils.END, sigils.SKIP_NL]
-        : [sigils.SP, ...stringifyRecord(), sigils.NL]),
+      sigils.SP,
+      ...decl.body.accept<StringifyResult, this>(this),
+      sigils.NL,
     ];
   }
 
@@ -224,8 +245,31 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitCallExpression(expr: CallExpression): StringifyResult {
+    const stringifiedFunctionIdentifier: StringifyResult = [];
+
+    if (expr.function_ instanceof astCommon.IdentifierNode) {
+      stringifiedFunctionIdentifier.push(expr.function_.name);
+    } else {
+      const components = expr.function_.components;
+      const allButLast = components.slice(0, -1);
+      const last = components.at(-1);
+
+      stringifiedFunctionIdentifier.push(
+        ...new astCommon.PathNode(allButLast).accept<StringifyResult, this>(
+          this
+        )
+      );
+
+      if (last) {
+        stringifiedFunctionIdentifier.push(
+          this.symbols.pathSeparator,
+          last.name
+        );
+      }
+    }
+
     return [
-      ...expr.function_.accept<StringifyResult, this>(this),
+      ...stringifiedFunctionIdentifier,
       this.symbols.functionInvokeBegin,
       ...this.toSeparatedList(
         expr.arguments_,

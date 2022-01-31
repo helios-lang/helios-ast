@@ -1,9 +1,10 @@
 export const keyword = {
-  function: "define",
+  function: "func",
   immutableBinding: "let",
   import: "import",
   lambda: "\\",
   type: "type",
+  typeAlias: "type alias",
 };
 
 export const symbol = {

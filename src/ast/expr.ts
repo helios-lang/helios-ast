@@ -3,8 +3,8 @@ import {
   IdentifierNode,
   Literal,
   Operator,
-  OptionallyTypedIdentifier,
-  OptionalType,
+  MaybeTypedIdentifier,
+  TypeNodeOrNull,
   PathNode,
 } from "./common.ts";
 
@@ -40,7 +40,7 @@ export class LiteralExpression extends Expression {
 }
 
 export class TupleExpression extends Expression {
-  constructor(readonly contents: Expression[]) {
+  constructor(readonly contents: ReadonlyArray<Expression>) {
     super();
   }
 
@@ -50,7 +50,7 @@ export class TupleExpression extends Expression {
 }
 
 export class ListExpression extends Expression {
-  constructor(readonly contents: Expression[]) {
+  constructor(readonly contents: ReadonlyArray<Expression>) {
     super();
   }
 
@@ -62,7 +62,7 @@ export class ListExpression extends Expression {
 export class CallExpression extends Expression {
   constructor(
     readonly function_: IdentifierNode | PathNode,
-    readonly arguments_: Expression[]
+    readonly arguments_: ReadonlyArray<Expression>
   ) {
     super();
   }
@@ -107,7 +107,7 @@ export class BinaryExpression extends Expression {
 }
 
 export class BlockExpression extends Expression {
-  constructor(readonly items: (Declaration | Expression)[]) {
+  constructor(readonly items: ReadonlyArray<Declaration | Expression>) {
     super();
   }
 
@@ -118,8 +118,8 @@ export class BlockExpression extends Expression {
 
 export class LambdaExpression extends Expression {
   constructor(
-    readonly parameters: OptionallyTypedIdentifier[],
-    readonly returnType: OptionalType,
+    readonly parameters: ReadonlyArray<MaybeTypedIdentifier>,
+    readonly returnType: TypeNodeOrNull,
     readonly body: Expression
   ) {
     super();

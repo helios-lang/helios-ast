@@ -12,10 +12,21 @@ const imports: ast.TopLevelNode[] = [
 
 const pointRecord: ast.TopLevelNode[] = [
   ast.docComment("A representation of a point in two-dimensional space."),
-  new ast.RecordTypeDeclaration(ast.ident("Point"), [
-    ast.typedIdent("x", ast.type("Float")),
-    ast.typedIdent("y", ast.type("Float")),
-  ]),
+  new ast.TypeDeclaration(
+    ast.ident("Point"),
+    new ast.AnonymousRecordNode([
+      ast.typedIdent("x", ast.ident("Float")),
+      ast.typedIdent("y", ast.ident("Float")),
+    ])
+  ),
+];
+
+const aliasRecord: ast.TopLevelNode[] = [
+  ast.docComment("Just a random type alias"),
+  new ast.TypeDeclaration(
+    ast.ident("MyAlias"),
+    ast.path("core", "string", "String")
+  ),
 ];
 
 const distanceFunction: ast.TopLevelNode[] = [
@@ -39,14 +50,14 @@ const distanceFunction: ast.TopLevelNode[] = [
   new ast.FunctionDeclaration(
     ast.ident("distance"),
     [
-      ast.optTypedIdent("a", ast.inferType()),
-      ast.optTypedIdent("b", ast.inferType()),
+      ast.optTypedIdent("a", ast.ident("Point")),
+      ast.optTypedIdent("b", ast.ident("Point")),
     ],
-    ast.inferType(),
+    ast.type(ast.ident("Float")),
     new ast.BlockExpression([
       new ast.BindingDeclaration(
         ast.ident("dx"),
-        ast.inferType(),
+        ast.inferredType(),
         new ast.CallExpression(ast.path("math", "pow"), [
           new ast.BinaryExpression(
             "-",
@@ -58,7 +69,7 @@ const distanceFunction: ast.TopLevelNode[] = [
       ),
       new ast.BindingDeclaration(
         ast.ident("dy"),
-        ast.inferType(),
+        ast.inferredType(),
         new ast.CallExpression(ast.path("math", "pow"), [
           new ast.BinaryExpression(
             "-",
@@ -77,28 +88,35 @@ const distanceFunction: ast.TopLevelNode[] = [
 
 const coordSumFunction: ast.TopLevelNode[] = [
   ast.docComment(
-    "This function accepts any value with `x`, `y` and `z` fields."
+    "This function accepts any value with `x`, `y` and `z` fields and calculates",
+    "their sum."
   ),
   new ast.FunctionDeclaration(
     ast.ident("coord_sum"),
-    [ast.optTypedIdent("values", ast.inferType())],
-    ast.inferType(),
+    [
+      ast.optTypedIdent(
+        "values",
+        new ast.AnonymousRecordNode([
+          ast.typedIdent("x", ast.ident("Float")),
+          ast.typedIdent("y", ast.ident("Float")),
+          ast.typedIdent("z", ast.ident("Float")),
+        ])
+      ),
+    ],
+    ast.inferredType(),
     new ast.BlockExpression([
       new ast.BindingDeclaration(
         ast.ident("sum"),
-        ast.inferType(),
+        ast.inferredType(),
         new ast.LambdaExpression(
-          [ast.optTypedIdent("xs", ast.inferType())],
-          ast.inferType(),
+          [ast.optTypedIdent("xs")],
+          ast.inferredType(),
           new ast.CallExpression(ast.path("list", "reduce"), [
             ast.ident("xs"),
             ast.literal(0),
             new ast.LambdaExpression(
-              [
-                ast.optTypedIdent("acc", ast.inferType()),
-                ast.optTypedIdent("cur", ast.inferType()),
-              ],
-              ast.inferType(),
+              [ast.optTypedIdent("acc"), ast.optTypedIdent("cur")],
+              ast.inferredType(),
               new ast.BinaryExpression("+", ast.ident("acc"), ast.ident("cur"))
             ),
           ])
@@ -120,7 +138,7 @@ const mainFunction: ast.TopLevelNode[] = [
   new ast.FunctionDeclaration(
     ast.ident("__main__"),
     [],
-    ast.inferType(),
+    ast.inferredType(),
     new ast.BlockExpression([
       new ast.CallExpression(ast.path("io", "println"), [
         ast.literal("Hello, world!"),
@@ -132,6 +150,7 @@ const mainFunction: ast.TopLevelNode[] = [
 const program: ast.Program = new Array<ast.TopLevelNode>().concat(
   imports,
   pointRecord,
+  aliasRecord,
   distanceFunction,
   coordSumFunction,
   mainFunction
@@ -139,10 +158,11 @@ const program: ast.Program = new Array<ast.TopLevelNode>().concat(
 
 async function main() {
   const options: ast.AstVisitorOptions = {
-    stringImports: true,
+    // stringImports: true,
+    // uppercaseModules: true,
     keywords: {},
     symbols: {
-      pathSeparator: ".",
+      // pathSeparator: ".",
     },
   };
 

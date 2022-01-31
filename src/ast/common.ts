@@ -5,15 +5,6 @@ import { LiteralExpression } from "./mod.ts";
 import { AstVisitor } from "./visitors/mod.ts";
 
 type Identifier = string & { __identifierBrand: any };
-export type Type = string & { __typeBrand: any };
-export type OptionalType = Type | null;
-
-export type TypedIdentifier = { identifier: IdentifierNode; type_: Type };
-export type OptionallyTypedIdentifier = {
-  identifier: IdentifierNode;
-  type_: OptionalType;
-};
-
 export type Operator = "+" | "-" | "*" | "/";
 
 export type Literal =
@@ -38,28 +29,31 @@ export const docComment = (...contents: string[]): CommentNode =>
 export const ident = (identifier: string): IdentifierNode =>
   new IdentifierNode(identifier as Identifier);
 
-export const type = (name: string): Type => name as Type;
-
 export const path = (head: string, ...tail: string[]): PathNode =>
   new PathNode([head, ...tail].map(ident));
 
-export const inferType = (): null => null;
+export function type(child: TypeNodeChild): TypeNode {
+  return new TypeNode(child);
+}
 
-export const typedIdent = (
-  identifier: string,
-  type: Type
-): TypedIdentifier => ({
-  identifier: ident(identifier),
-  type_: type,
-});
+export const inferredType = (): TypeNodeOrNull => null;
 
-export const optTypedIdent = (
+export function typedIdent(
   identifier: string,
-  type: Type | null
-): OptionallyTypedIdentifier => ({
-  identifier: ident(identifier),
-  type_: type,
-});
+  child: TypeNodeChild
+): AlwaysTypedIdentifier {
+  return { identifier: ident(identifier), identifierType: type(child) };
+}
+
+export function optTypedIdent(
+  identifier: string,
+  child: TypeNodeChild | null = null
+): MaybeTypedIdentifier {
+  return {
+    identifier: ident(identifier),
+    identifierType: child ? type(child) : null,
+  };
+}
 
 export const literal = (
   value: boolean | number | string,
@@ -107,8 +101,32 @@ export class IdentifierNode extends AstNode {
   }
 }
 
+export class ModuleIdentifierNode extends AstNode {
+  constructor(readonly name: Identifier) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitModuleNode(this);
+  }
+}
+
+export type TypeNodeOrNull = TypeNode | null;
+
+export type TypeNodeChild = IdentifierNode | PathNode | AnonymousRecordNode;
+
+export class TypeNode extends AstNode {
+  constructor(readonly child: TypeNodeChild) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitTypeNode(this);
+  }
+}
+
 export class PathNode extends AstNode {
-  constructor(readonly components: IdentifierNode[]) {
+  constructor(readonly components: ReadonlyArray<IdentifierNode>) {
     super();
   }
 
@@ -117,16 +135,22 @@ export class PathNode extends AstNode {
   }
 }
 
+export class AnonymousRecordNode extends AstNode {
+  constructor(readonly fields: ReadonlyArray<AlwaysTypedIdentifier>) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitAnonymousRecordNode(this);
+  }
+}
+
+type IdentifierWithType<T> = { identifier: IdentifierNode; identifierType: T };
+export type AlwaysTypedIdentifier = IdentifierWithType<TypeNode>;
+export type MaybeTypedIdentifier = IdentifierWithType<TypeNodeOrNull>;
+
 export type Program = TopLevelNode[];
 export type TopLevelNode = CommentNode | Declaration;
-
-export function splitStringInto(string: string, count: number): string[] {
-  const parts: string[] = [];
-  for (let i = 0; i < string.length; i += count) {
-    parts.push(string.slice(i, i + count));
-  }
-  return parts;
-}
 
 export function capitalizeModuleName(string: string): string {
   if (string.length == 2) return string.toUpperCase();
