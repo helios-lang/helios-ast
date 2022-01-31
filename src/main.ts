@@ -1,3 +1,5 @@
+import * as fs from "https://deno.land/std@0.123.0/fs/mod.ts";
+
 import * as ast from "./ast/mod.ts";
 
 const pointRecord: ast.TopLevelNode[] = [
@@ -6,48 +8,6 @@ const pointRecord: ast.TopLevelNode[] = [
     ast.typedIdent("x", ast.type("Float")),
     ast.typedIdent("y", ast.type("Float")),
   ]),
-];
-
-const coordSumFunction: ast.TopLevelNode[] = [
-  ast.comment("This function accepts any value with `x`, `y` and `z` fields."),
-  new ast.FunctionDeclaration(
-    ast.ident("coord_sum"),
-    [ast.optTypedIdent("values", ast.inferType())],
-    ast.inferType(),
-    new ast.BlockExpression([
-      new ast.BindingDeclaration(
-        ast.ident("sum"),
-        ast.inferType(),
-        new ast.LambdaExpression(
-          [ast.optTypedIdent("xs", ast.inferType())],
-          ast.inferType(),
-          new ast.CallExpression(ast.path("list", "reduce"), [
-            new ast.IdentifierExpression(ast.ident("xs")),
-            new ast.LiteralExpression({ kind: "integer", value: 0 }),
-            new ast.LambdaExpression(
-              [
-                ast.optTypedIdent("acc", ast.inferType()),
-                ast.optTypedIdent("cur", ast.inferType()),
-              ],
-              ast.inferType(),
-              new ast.BinaryExpression(
-                "+",
-                new ast.IdentifierExpression(ast.ident("acc")),
-                new ast.IdentifierExpression(ast.ident("cur"))
-              )
-            ),
-          ])
-        )
-      ),
-      new ast.CallExpression(ast.ident("sum"), [
-        new ast.ListExpression([
-          new ast.DotExpression([ast.ident("value"), ast.ident("x")]),
-          new ast.DotExpression([ast.ident("value"), ast.ident("y")]),
-          new ast.DotExpression([ast.ident("value"), ast.ident("z")]),
-        ]),
-      ]),
-    ])
-  ),
 ];
 
 const distanceFunction: ast.TopLevelNode[] = [
@@ -104,22 +64,70 @@ const distanceFunction: ast.TopLevelNode[] = [
   ),
 ];
 
-// const program: ast.Program = new Array<ast.TopLevelNode>().concat(
-//   pointRecord
-//   distanceFunction,
-//   coordSumFunction
-// );
-
-// const stringified = ast.stringify(program);
-// console.log(stringified);
-
-const program: ast.Program = [
-  new ast.BindingDeclaration(
-    ast.ident("foo"),
+const coordSumFunction: ast.TopLevelNode[] = [
+  ast.comment("This function accepts any value with `x`, `y` and `z` fields."),
+  new ast.FunctionDeclaration(
+    ast.ident("coord_sum"),
+    [ast.optTypedIdent("values", ast.inferType())],
     ast.inferType(),
-    new ast.LiteralExpression({ kind: "integer", value: 1 })
+    new ast.BlockExpression([
+      new ast.BindingDeclaration(
+        ast.ident("sum"),
+        ast.inferType(),
+        new ast.LambdaExpression(
+          [ast.optTypedIdent("xs", ast.inferType())],
+          ast.inferType(),
+          new ast.CallExpression(ast.path("list", "reduce"), [
+            new ast.IdentifierExpression(ast.ident("xs")),
+            new ast.LiteralExpression({ kind: "integer", value: 0 }),
+            new ast.LambdaExpression(
+              [
+                ast.optTypedIdent("acc", ast.inferType()),
+                ast.optTypedIdent("cur", ast.inferType()),
+              ],
+              ast.inferType(),
+              new ast.BinaryExpression(
+                "+",
+                new ast.IdentifierExpression(ast.ident("acc")),
+                new ast.IdentifierExpression(ast.ident("cur"))
+              )
+            ),
+          ])
+        )
+      ),
+      new ast.CallExpression(ast.ident("sum"), [
+        new ast.ListExpression([
+          new ast.DotExpression([ast.ident("value"), ast.ident("x")]),
+          new ast.DotExpression([ast.ident("value"), ast.ident("y")]),
+          new ast.DotExpression([ast.ident("value"), ast.ident("z")]),
+        ]),
+      ]),
+    ])
   ),
 ];
 
+const mainFunction: ast.TopLevelNode[] = [
+  ast.comment("This is the entry point of the program."),
+  new ast.FunctionDeclaration(
+    ast.ident("__main__"),
+    [],
+    ast.inferType(),
+    new ast.LiteralExpression({ kind: "integer", value: 0 })
+  ),
+];
+
+const program: ast.Program = new Array<ast.TopLevelNode>().concat(
+  pointRecord,
+  distanceFunction,
+  coordSumFunction,
+  mainFunction
+);
+
 const htmlified = ast.htmlify(program);
 console.log(htmlified);
+
+const fileName = "source.hl.html";
+const filePath = `./out/${fileName}`;
+await fs.ensureFile(filePath);
+await Deno.writeTextFile(filePath, htmlified);
+console.log("Successfully written file to", await Deno.realPath(filePath));

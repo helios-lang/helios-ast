@@ -55,7 +55,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitComment(comment: astCommon.Comment): StringifyResult {
     return [
-      $s.symbol.commentStart,
+      $s.symbol.commentBegin,
       comment.message.trim().length > 0 && $g.SP,
       comment.message,
     ];
@@ -78,10 +78,13 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       $s.keyword.function,
       $g.SP,
       decl.identifier,
-      $g.SP,
-      $s.symbol.functionInvokeStart,
+      $s.symbol.functionInvokeBegin,
+      ...this.toParameterList(decl.parameters),
       $s.symbol.functionInvokeEnd,
       $g.SP,
+      ...(decl.returnType
+        ? [$s.symbol.functionReturn, $g.SP, decl.returnType, $g.SP]
+        : []),
       $s.symbol.functionBegin,
       ...decl.body.accept<StringifyResult, this>(this),
     ];
@@ -90,6 +93,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitRecordTypeDeclaration(decl: RecordTypeDeclaration): StringifyResult {
     function stringifyRecord(): StringifyResult {
       const body: StringifyResult = [];
+
       if (decl.fields) {
         body.push(
           $g.BEGIN,
@@ -138,9 +142,9 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitListExpression(expr: ListExpression): StringifyResult {
     return [
-      "[",
-      ...this.toSeparatedList(expr.contents, $s.symbol.listSeparator),
-      "]",
+      $s.symbol.listBegin,
+      ...this.toSeparatedList(expr.contents),
+      $s.symbol.listEnd,
     ];
   }
 
@@ -149,7 +153,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       typeof expr.function_ === "string"
         ? expr.function_
         : expr.function_.join($s.symbol.modulePathSeparator),
-      $s.symbol.functionInvokeStart,
+      $s.symbol.functionInvokeBegin,
       ...this.toSeparatedList(
         expr.arguments_,
         $s.symbol.functionParameterSeparator
@@ -250,7 +254,7 @@ function processIndentsForNode(
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
   let currIndent = 0;
   for (const token of tokens) {
-    if (!token.startsWith("<@@")) {
+    if (!token.startsWith("<!--")) {
       yield token;
     } else {
       if (token === $g.SKIP_NL) continue;

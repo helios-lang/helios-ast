@@ -29,7 +29,7 @@ export class FunctionDeclaration extends Declaration {
   constructor(
     readonly identifier: Identifier,
     readonly parameters: OptionallyTypedIdentifier[],
-    readonly return_: OptionalType,
+    readonly returnType: OptionalType,
     readonly body: Expression
   ) {
     super();

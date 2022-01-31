@@ -1,8 +1,13 @@
 {
-  "cSpell.words": ["htmlify"],
+  "cSpell.words": ["htmlified", "htmlify"],
   "deno.enable": true,
   "deno.lint": true,
-  "deno.unstable": false,
+  "deno.unstable": true,
   "editor.formatOnSave": true,
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "[css]": {
+    "editor.formatOnSave": false,
+    "editor.suggest.insertMode": "replace",
+    "gitlens.codeLens.scopes": ["document"]
+  }
 }

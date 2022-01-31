@@ -6,14 +6,17 @@ export const keyword = {
 };
 
 export const symbol = {
-  commentStart: "##",
+  bindingOperator: "=",
+  commentBegin: "##",
   commentEnd: "\n",
   functionBegin: "=",
+  functionInvokeBegin: "(",
   functionInvokeEnd: ")",
-  functionInvokeStart: "(",
   functionParameterSeparator: ",",
   functionReturn: "->",
   lambdaBegin: "->",
+  listBegin: "[",
+  listEnd: "]",
   listSeparator: ",",
   modulePathSeparator: "::",
   recordBegin: "@(",
@@ -22,5 +25,4 @@ export const symbol = {
   recordSeparator: ",",
   typeAnnotation: ":",
   typeBegin: "=",
-  bindingOperator: "=",
 };
