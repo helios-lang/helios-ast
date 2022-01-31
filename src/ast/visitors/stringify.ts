@@ -223,14 +223,14 @@ export function stringify(
   }
 
   const processTopLevelNodes = (node: astCommon.TopLevelNode) => [
-    ...processIndents(node, options.indentationCount ?? 2),
+    ...processIndentsForNode(node, options.indentationCount ?? 2),
     $g.NL,
   ];
 
   return _program.flatMap(processTopLevelNodes).join("").trim();
 }
 
-function processIndents(
+function processIndentsForNode(
   node: astCommon.TopLevelNode,
   indentationCount: number
 ) {
@@ -249,9 +249,7 @@ function processIndents(
 
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
   let currIndent = 0;
-
-  for (let i = 0; i < tokens.length; i += 1) {
-    const token = tokens[i];
+  for (const token of tokens) {
     if (!token.startsWith("<@@")) {
       yield token;
     } else {
@@ -262,17 +260,17 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
         case $g.BEGIN:
           currIndent += indentationCount;
           yield indent(currIndent);
-          continue;
+          break;
         case $g.CONT:
           yield indent(currIndent);
-          continue;
+          break;
         case $g.END:
           currIndent = Math.max(0, currIndent - indentationCount);
           yield indent(currIndent);
-          continue;
+          break;
         case $g.RESET:
           currIndent = 0;
-          continue;
+          break;
         default:
           yield token;
       }

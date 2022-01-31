@@ -104,11 +104,22 @@ const distanceFunction: ast.TopLevelNode[] = [
   ),
 ];
 
-const program: ast.Program = new Array<ast.TopLevelNode>().concat(
-  pointRecord,
-  distanceFunction,
-  coordSumFunction
-);
+// const program: ast.Program = new Array<ast.TopLevelNode>().concat(
+//   pointRecord
+//   distanceFunction,
+//   coordSumFunction
+// );
 
-const stringified = ast.stringify(program);
-console.log(stringified);
+// const stringified = ast.stringify(program);
+// console.log(stringified);
+
+const program: ast.Program = [
+  new ast.BindingDeclaration(
+    ast.ident("foo"),
+    ast.inferType(),
+    new ast.LiteralExpression({ kind: "integer", value: 1 })
+  ),
+];
+
+const htmlified = ast.htmlify(program);
+console.log(htmlified);

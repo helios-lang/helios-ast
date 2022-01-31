@@ -29,15 +29,12 @@ export type HtmlClass =
   | "operator"
   | "string";
 
-export type HtmlElementChildren = HtmlElement | HtmlElement[];
-
 export type HtmlElement =
+  | { tag: "sigil"; text: string }
   | { tag: "text"; text: string }
-  | {
-      tag: "div" | "span";
-      classes: HtmlClass[];
-      children?: HtmlElementChildren;
-    };
+  | { tag: "span"; classes: HtmlClass[]; children?: HtmlElementChildren };
+
+export type HtmlElementChildren = HtmlElement | HtmlElement[];
 
 type HtmlElementConstructor = (
   classes: HtmlClass[],
@@ -45,8 +42,8 @@ type HtmlElementConstructor = (
 ) => HtmlElement;
 
 const t = (text: string): HtmlElement => ({ tag: "text", text });
-t.space = { tag: "text", text: $g.SP } as HtmlElement;
-t.newLine = { tag: "text", text: $g.NL } as HtmlElement;
+t.space = { tag: "sigil", text: $g.SP } as HtmlElement;
+t.newLine = { tag: "sigil", text: $g.NL } as HtmlElement;
 
 // const d: HtmlElementConstructor = (classes, children) => ({
 //   tag: "div",
@@ -69,8 +66,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
   visitBindingDeclaration(decl: BindingDeclaration): HtmlifyResult {
     return [
-      s(["keyword"]),
-      t($s.keyword.immutableBinding),
+      s(["keyword"], t($s.keyword.immutableBinding)),
       t.space,
       t(decl.identifier),
       t.space,
@@ -128,6 +124,54 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 // -----------------------------------------------------------------------------
 
 export function htmlify(program: astCommon.Program): string {
+  console.log(processNode(program[0]));
+
+  return [
+    `<!DOCTYPE html>`,
+    `<html lang="en">`,
+    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="lang.css" /><title>program.hl</title></head>`,
+    `<pre class="source">`,
+    `</pre>`,
+    `<body>`,
+    `</body>`,
+    `</html>`,
+  ].join("");
+}
+
+function processNode(node: astCommon.TopLevelNode) {
   const visitor = new HtmlifyVisitor();
-  return "";
+  const tokens = node.accept<HtmlifyResult, typeof visitor>(visitor);
+  const processed = htmlElementChildrenToStrings(tokens);
+  console.log(processed.join("").trim());
+}
+
+function htmlElementChildrenToStrings(elements: HtmlElementChildren) {
+  const processed: string[] = [];
+  const htmlElements = Array.isArray(elements) ? elements : [elements];
+
+  function visitHtmlElement(child: HtmlElement) {
+    switch (child.tag) {
+      case "span":
+        processed.push(`<span class="${child.classes.join(" ")}">`);
+        if (child.children) {
+          if (Array.isArray(child.children)) {
+            child.children.forEach(visitHtmlElement);
+          } else {
+            visitHtmlElement(child.children);
+          }
+        }
+        processed.push(`</span>`);
+        break;
+      case "text": /* FALLTHROUGH */
+      default:
+        processed.push(child.text);
+        break;
+    }
+  }
+
+  for (const htmlElement of htmlElements) {
+    visitHtmlElement(htmlElement);
+  }
+
+  return processed;
 }
