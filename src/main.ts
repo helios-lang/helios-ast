@@ -137,14 +137,24 @@ const program: ast.Program = new Array<ast.TopLevelNode>().concat(
   mainFunction
 );
 
-const stringified = ast.stringify(program);
-console.log(stringified);
+async function main() {
+  const options: ast.AstVisitorOptions = {
+    stringImports: true,
+    keywords: {},
+    symbols: {
+      pathSeparator: ".",
+    },
+  };
 
-const htmlified = ast.htmlify(program);
-// console.log(htmlified);
+  const stringified = ast.stringify(program, options);
+  console.log(stringified, "\n");
 
-const fileName = "source.hl.html";
-const filePath = `./out/${fileName}`;
-await fs.ensureFile(filePath);
-await Deno.writeTextFile(filePath, htmlified);
-console.log("Successfully written file to", await Deno.realPath(filePath));
+  const fileName = "source.hl.html";
+  const filePath = `./out/${fileName}`;
+  const htmlified = ast.htmlify(program, options);
+  await fs.ensureFile(filePath);
+  await Deno.writeTextFile(filePath, htmlified);
+  console.log("Successfully written file to", await Deno.realPath(filePath));
+}
+
+await main();

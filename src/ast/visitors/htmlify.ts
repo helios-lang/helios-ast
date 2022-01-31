@@ -1,5 +1,4 @@
-import * as $g from "../sigils.ts";
-import * as $s from "../strings.ts";
+import * as sigils from "../sigils.ts";
 import * as astCommon from "../common.ts";
 import * as visitorCommon from "./common.ts";
 
@@ -45,13 +44,13 @@ export type HtmlElement =
 const t = (text: string): HtmlElement => ({ tag: "text", text });
 
 const g = {
-  SP: { tag: "sigil", text: $g.SP } as HtmlElement,
-  NL: { tag: "sigil", text: $g.NL } as HtmlElement,
-  BEGIN: { tag: "sigil", text: $g.BEGIN } as HtmlElement,
-  CONT: { tag: "sigil", text: $g.CONT } as HtmlElement,
-  END: { tag: "sigil", text: $g.END } as HtmlElement,
-  SKIP_NL: { tag: "sigil", text: $g.SKIP_NL } as HtmlElement,
-  RESET: { tag: "sigil", text: $g.RESET } as HtmlElement,
+  SP: { tag: "sigil", text: sigils.SP } as HtmlElement,
+  NL: { tag: "sigil", text: sigils.NL } as HtmlElement,
+  BEGIN: { tag: "sigil", text: sigils.BEGIN } as HtmlElement,
+  CONT: { tag: "sigil", text: sigils.CONT } as HtmlElement,
+  END: { tag: "sigil", text: sigils.END } as HtmlElement,
+  SKIP_NL: { tag: "sigil", text: sigils.SKIP_NL } as HtmlElement,
+  RESET: { tag: "sigil", text: sigils.RESET } as HtmlElement,
 };
 
 type HtmlElementConstructor = (
@@ -74,7 +73,7 @@ export type HtmlifyResult = (false | HtmlElement)[];
 export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   private toSeparatedList(
     nodes: astCommon.AstNode[],
-    separator = s([HtmlClass.SYMBOL], t($s.symbol.listSeparator)),
+    separator = s([HtmlClass.SYMBOL], t(this.symbols.listSeparator)),
     addSpace = true
   ): HtmlifyResult {
     return nodes.flatMap((node, index, array) => {
@@ -91,7 +90,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       | astCommon.OptionallyTypedIdentifier
       | astCommon.TypedIdentifier
     )[],
-    separator = s([HtmlClass.SYMBOL], t($s.symbol.functionParameterSeparator))
+    separator = s(
+      [HtmlClass.SYMBOL],
+      t(this.symbols.functionParameterSeparator)
+    )
   ): readonly [HtmlifyResult, boolean] {
     let hasAnnotation = false;
 
@@ -101,7 +103,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       if (type_) {
         if (!hasAnnotation) hasAnnotation = true;
         htmlified.push(
-          s([HtmlClass.SYMBOL], t($s.symbol.typeAnnotation)),
+          s([HtmlClass.SYMBOL], t(this.symbols.typeAnnotation)),
           g.SP,
           s([HtmlClass.TYPE], t(type_))
         );
@@ -117,11 +119,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   visitCommentNode(comment: astCommon.CommentNode): HtmlifyResult {
     const children: HtmlElement[] = [];
     const commentBegin = comment.isDocComment
-      ? $s.symbol.docCommentBegin
-      : $s.symbol.commentBegin;
+      ? this.symbols.docCommentBegin
+      : this.symbols.commentBegin;
     const commentEnd = comment.isDocComment
-      ? $s.symbol.docCommentEnd
-      : $s.symbol.commentEnd;
+      ? this.symbols.docCommentEnd
+      : this.symbols.commentEnd;
 
     const parts = comment.message.split("\n");
     for (let i = 0; i < parts.length; i++) {
@@ -143,34 +145,50 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       const htmlified = [s([HtmlClass.MODULE], t(component.name))];
       if (index === array.length - 1) return htmlified;
       return htmlified.concat(
-        s([HtmlClass.SYMBOL], t($s.symbol.pathSeparator))
+        s([HtmlClass.SYMBOL], t(this.symbols.pathSeparator))
       );
     });
   }
 
   visitImportDeclaration(decl: ImportDeclaration): HtmlifyResult {
-    return [
-      s([HtmlClass.KEYWORD], t($s.keyword.import)),
+    const importContents: HtmlifyResult = [
+      s([HtmlClass.KEYWORD], t(this.keywords.import)),
       g.SP,
-      // s(
-      //   [HtmlClass.STRING],
-      //   [
-      //     t($s.symbol.importBegin),
-      //     ...decl.path.components.flatMap((component, index, array) => {
-      //       if (index === array.length - 1) return t(component.name);
-      //       return [t(component.name), t($s.symbol.importSeparator)];
-      //     }),
-      //     t($s.symbol.importEnd),
-      //   ]
-      // ),
-      t($s.symbol.importBegin),
-      ...decl.path.components.flatMap((components, index, array) => {
-        const htmlified = [s([HtmlClass.MODULE], t(components.name))];
-        if (index === array.length - 1) return htmlified;
-        return htmlified.concat(t($s.symbol.importSeparator));
-      }),
-      t($s.symbol.importEnd),
     ];
+
+    if (this.options.stringImports) {
+      importContents.push(
+        s(
+          [HtmlClass.STRING],
+          [
+            t(this.symbols.stringBegin),
+            ...this.toSeparatedList(decl.path.components, t("/"), false).filter(
+              (element): element is HtmlElement => Boolean(element)
+            ),
+            t(this.symbols.stringEnd),
+          ]
+        )
+      );
+    } else {
+      importContents.push(
+        ...decl.path.components.flatMap((components, index, array) => {
+          const htmlified = [
+            s(
+              [HtmlClass.MODULE],
+              t(
+                this.options.uppercaseModules
+                  ? astCommon.capitalizeModuleName(components.name)
+                  : components.name
+              )
+            ),
+          ];
+          if (index === array.length - 1) return htmlified;
+          return htmlified.concat(t(this.symbols.pathSeparator));
+        })
+      );
+    }
+
+    return importContents;
   }
 
   visitImportDeclarationGroup(decl: ImportDeclarationGroup): HtmlifyResult {
@@ -181,11 +199,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
   visitBindingDeclaration(decl: BindingDeclaration): HtmlifyResult {
     return [
-      s([HtmlClass.KEYWORD], t($s.keyword.immutableBinding)),
+      s([HtmlClass.KEYWORD], t(this.keywords.immutableBinding)),
       g.SP,
       ...decl.identifier.accept<HtmlifyResult, this>(this),
       g.SP,
-      s([HtmlClass.OPERATOR], t($s.symbol.bindingOperator)),
+      s([HtmlClass.OPERATOR], t(this.symbols.bindingOperator)),
       g.SP,
       ...decl.value.accept<HtmlifyResult, this>(this),
     ];
@@ -193,22 +211,22 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
   visitFunctionDeclaration(decl: FunctionDeclaration): HtmlifyResult {
     return [
-      s([HtmlClass.KEYWORD], t($s.keyword.function)),
+      s([HtmlClass.KEYWORD], t(this.keywords.function)),
       g.SP,
       s([HtmlClass.FUNCTION], t(decl.identifier.name)),
-      s([HtmlClass.SYMBOL], t($s.symbol.functionInvokeBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.functionInvokeBegin)),
       ...this.toParameterList(decl.parameters)[0],
-      s([HtmlClass.SYMBOL], t($s.symbol.functionInvokeEnd)),
+      s([HtmlClass.SYMBOL], t(this.symbols.functionInvokeEnd)),
       g.SP,
       ...(decl.returnType
         ? [
-            t($s.symbol.functionReturn),
+            t(this.symbols.functionReturn),
             g.SP,
             s([HtmlClass.TYPE], t(decl.returnType)),
             g.SP,
           ]
         : []),
-      s([HtmlClass.SYMBOL], t($s.symbol.functionBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.functionBegin)),
       !(decl.body instanceof BlockExpression) && g.SP,
       ...decl.body.accept<HtmlifyResult, this>(this),
     ];
@@ -217,7 +235,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   visitRecordTypeDeclaration(decl: RecordTypeDeclaration): HtmlifyResult {
     const insertBlock = Boolean(decl.fields && decl.fields.length >= 4);
 
-    function stringifyRecord(): HtmlifyResult {
+    const stringifyRecord = (): HtmlifyResult => {
       const body: HtmlifyResult = [];
 
       if (decl.fields && decl.fields.length > 0) {
@@ -227,7 +245,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             const htmlified: HtmlifyResult = [
               s(
                 [HtmlClass.CONSTRUCTOR],
-                t(`${identifier.name}${$s.symbol.typeAnnotation}`)
+                t(`${identifier.name}${this.symbols.typeAnnotation}`)
               ),
               g.SP,
               s([HtmlClass.TYPE], t(type_)),
@@ -235,7 +253,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
             if (index === array.length - 1) return htmlified;
             return htmlified.concat(
-              s([HtmlClass.SYMBOL], t($s.symbol.recordSeparator)),
+              s([HtmlClass.SYMBOL], t(this.symbols.recordSeparator)),
               insertBlock ? g.CONT : g.SP
             );
           }),
@@ -244,18 +262,18 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       }
 
       return [
-        s([HtmlClass.CONSTRUCTOR], t($s.symbol.recordBegin)),
+        s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordBegin)),
         ...body,
-        s([HtmlClass.CONSTRUCTOR], t($s.symbol.recordEnd)),
+        s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordEnd)),
       ];
-    }
+    };
 
     return [
-      s([HtmlClass.KEYWORD], t($s.keyword.type)),
+      s([HtmlClass.KEYWORD], t(this.keywords.type)),
       g.SP,
       s([HtmlClass.TYPE], t(decl.identifier.name)),
       g.SP,
-      s([HtmlClass.SYMBOL], t($s.symbol.typeBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.typeBegin)),
       ...(insertBlock
         ? [g.BEGIN, ...stringifyRecord(), g.END, g.SKIP_NL]
         : [g.SP, ...stringifyRecord(), g.NL]),
@@ -277,7 +295,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         return [
           s(
             [HtmlClass.STRING],
-            t($s.symbol.stringBegin + expr.literal.value + $s.symbol.stringEnd)
+            t(
+              this.symbols.stringBegin +
+                expr.literal.value +
+                this.symbols.stringEnd
+            )
           ),
         ];
     }
@@ -285,20 +307,20 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
   visitTupleExpression(expr: TupleExpression): HtmlifyResult {
     return [
-      s([HtmlClass.SYMBOL], t($s.symbol.tupleBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.tupleBegin)),
       ...this.toSeparatedList(
         expr.contents,
-        s([HtmlClass.SYMBOL], t($s.symbol.tupleSeparator))
+        s([HtmlClass.SYMBOL], t(this.symbols.tupleSeparator))
       ),
-      s([HtmlClass.SYMBOL], t($s.symbol.tupleEnd)),
+      s([HtmlClass.SYMBOL], t(this.symbols.tupleEnd)),
     ];
   }
 
   visitListExpression(expr: ListExpression): HtmlifyResult {
     return [
-      s([HtmlClass.SYMBOL], t($s.symbol.listBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.listBegin)),
       ...this.toSeparatedList(expr.contents),
-      s([HtmlClass.SYMBOL], t($s.symbol.listEnd)),
+      s([HtmlClass.SYMBOL], t(this.symbols.listEnd)),
     ];
   }
 
@@ -319,7 +341,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         } else {
           htmlifiedFunctionIdentifier.push(
             s([HtmlClass.MODULE], t(component.name)),
-            s([HtmlClass.SYMBOL], t($s.symbol.pathSeparator))
+            s([HtmlClass.SYMBOL], t(this.symbols.pathSeparator))
           );
         }
       }
@@ -327,12 +349,12 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
     return [
       ...htmlifiedFunctionIdentifier,
-      s([HtmlClass.SYMBOL], t($s.symbol.functionInvokeBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.functionInvokeBegin)),
       ...this.toSeparatedList(
         expr.arguments_,
-        s([HtmlClass.SYMBOL], t($s.symbol.functionParameterSeparator))
+        s([HtmlClass.SYMBOL], t(this.symbols.functionParameterSeparator))
       ),
-      s([HtmlClass.SYMBOL], t($s.symbol.functionInvokeEnd)),
+      s([HtmlClass.SYMBOL], t(this.symbols.functionInvokeEnd)),
     ];
   }
 
@@ -347,7 +369,9 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       }
 
       if (index < array.length - 1) {
-        htmlified.push(s([HtmlClass.SYMBOL], t($s.symbol.recordPathSeparator)));
+        htmlified.push(
+          s([HtmlClass.SYMBOL], t(this.symbols.recordPathSeparator))
+        );
       }
 
       return htmlified;
@@ -379,12 +403,13 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     const [paramList, hasAnnotation] = this.toParameterList(expr.parameters);
 
     return [
-      s([HtmlClass.KEYWORD], t($s.keyword.lambda)),
-      hasAnnotation && s([HtmlClass.SYMBOL], t($s.symbol.functionInvokeBegin)),
+      s([HtmlClass.KEYWORD], t(this.keywords.lambda)),
+      hasAnnotation &&
+        s([HtmlClass.SYMBOL], t(this.symbols.functionInvokeBegin)),
       ...paramList,
-      hasAnnotation && s([HtmlClass.SYMBOL], t($s.symbol.functionInvokeEnd)),
+      hasAnnotation && s([HtmlClass.SYMBOL], t(this.symbols.functionInvokeEnd)),
       g.SP,
-      s([HtmlClass.SYMBOL], t($s.symbol.lambdaBegin)),
+      s([HtmlClass.SYMBOL], t(this.symbols.lambdaBegin)),
       g.SP,
       ...expr.body.accept<HtmlifyResult, this>(this),
     ];
@@ -393,10 +418,8 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
 // -----------------------------------------------------------------------------
 
-type HtmlifyOptions = {
-  indentationCount?: number;
-  stripComments?: boolean;
-};
+// deno-lint-ignore no-empty-interface
+interface HtmlifyOptions extends visitorCommon.AstVisitorOptions {}
 
 export function htmlify(
   program: astCommon.Program,
@@ -410,10 +433,7 @@ export function htmlify(
   }
 
   const source = _program
-    .flatMap((node) => [
-      ...processNode(node, options.indentationCount ?? 2),
-      $g.NL,
-    ])
+    .flatMap((node) => [...processNode(node, options), sigils.NL])
     .join("")
     .trim();
 
@@ -430,13 +450,13 @@ export function htmlify(
   ].join("");
 }
 
-function processNode(node: astCommon.TopLevelNode, indentationCount: number) {
-  const visitor = new HtmlifyVisitor();
+function processNode(node: astCommon.TopLevelNode, options: HtmlifyOptions) {
+  const visitor = new HtmlifyVisitor(options);
   const tokens = node
     .accept<HtmlifyResult, typeof visitor>(visitor)
     .filter((token): token is HtmlElement => Boolean(token));
 
-  return htmlElementsToStrings(tokens, indentationCount);
+  return htmlElementsToStrings(tokens, options.indentationCount ?? 2);
 }
 
 function htmlElementsToStrings(
@@ -450,26 +470,26 @@ function htmlElementsToStrings(
   function visitHtmlElement(child: HtmlElement) {
     switch (child.tag) {
       case "sigil": {
-        if (child.text === $g.SP) {
-          processed.push($g.SP);
+        if (child.text === sigils.SP) {
+          processed.push(sigils.SP);
           return;
         }
 
-        if (child.text === $g.SKIP_NL) {
+        if (child.text === sigils.SKIP_NL) {
           return;
         } else {
-          processed.push($g.NL);
+          processed.push(sigils.NL);
         }
 
-        if (child.text === $g.BEGIN) {
+        if (child.text === sigils.BEGIN) {
           currIndent += indentationCount;
           processed.push(indent(currIndent));
-        } else if (child.text === $g.CONT) {
+        } else if (child.text === sigils.CONT) {
           processed.push(indent(currIndent));
-        } else if (child.text === $g.END) {
+        } else if (child.text === sigils.END) {
           currIndent = Math.max(0, currIndent - indentationCount);
           processed.push(indent(currIndent));
-        } else if (child.text === $g.RESET) {
+        } else if (child.text === sigils.RESET) {
           currIndent = 0;
           processed.push(indent(currIndent));
         } else {
@@ -504,5 +524,5 @@ function htmlElementsToStrings(
 }
 
 function indent(times: number) {
-  return $g.SP.repeat(Math.max(0, times));
+  return sigils.SP.repeat(Math.max(0, times));
 }

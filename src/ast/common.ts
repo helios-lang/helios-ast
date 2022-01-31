@@ -127,3 +127,8 @@ export function splitStringInto(string: string, count: number): string[] {
   }
   return parts;
 }
+
+export function capitalizeModuleName(string: string): string {
+  if (string.length == 2) return string.toUpperCase();
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}

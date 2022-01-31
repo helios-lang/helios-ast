@@ -1,4 +1,5 @@
 import * as common from "../common.ts";
+import * as strings from "../strings.ts";
 
 import {
   BindingDeclaration,
@@ -20,7 +21,29 @@ import {
   UnaryExpression,
 } from "../expr.ts";
 
+export interface AstVisitorOptions {
+  stringImports?: boolean;
+  indentationCount?: number;
+  stripComments?: boolean;
+  uppercaseModules?: boolean;
+  keywords?: Partial<typeof strings.keyword>;
+  symbols?: Partial<typeof strings.symbol>;
+}
+
 export abstract class AstVisitor<R> {
+  readonly keywords: typeof strings.keyword;
+  readonly symbols: typeof strings.symbol;
+  readonly options: Omit<
+    AstVisitorOptions,
+    "keywordDictionary" | "symbolDictionary"
+  >;
+
+  constructor(options: AstVisitorOptions) {
+    this.options = options;
+    this.keywords = { ...strings.keyword, ...options.keywords };
+    this.symbols = { ...strings.symbol, ...options.symbols };
+  }
+
   // --- MISCELLANEOUS ---
 
   abstract visitCommentNode(comment: common.CommentNode): R;

@@ -1,5 +1,4 @@
-import * as $g from "../sigils.ts";
-import * as $s from "../strings.ts";
+import * as sigils from "../sigils.ts";
 import * as astCommon from "../common.ts";
 import * as visitorCommon from "./common.ts";
 
@@ -28,14 +27,14 @@ export type StringifyResult = (string | false)[];
 export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> {
   private toSeparatedList(
     nodes: astCommon.AstNode[],
-    separator = $s.symbol.listSeparator,
+    separator = this.symbols.listSeparator,
     addSpace = true
   ): StringifyResult {
     return nodes.flatMap((node, index, array) => {
       const stringified = node.accept<StringifyResult, this>(this);
       if (index === array.length - 1) return stringified;
       return addSpace
-        ? stringified.concat(separator, $g.SP)
+        ? stringified.concat(separator, sigils.SP)
         : stringified.concat(separator);
     });
   }
@@ -45,23 +44,24 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       | astCommon.OptionallyTypedIdentifier
       | astCommon.TypedIdentifier
     )[],
-    separator = $s.symbol.functionParameterSeparator
+    separator = this.symbols.functionParameterSeparator
   ): StringifyResult {
     return parameters.flatMap(({ identifier, type_ }, index, array) => {
       const stringified = identifier.accept<StringifyResult, this>(this);
-      if (type_) stringified.push($s.symbol.typeAnnotation, $g.SP, type_);
+      if (type_)
+        stringified.push(this.symbols.typeAnnotation, sigils.SP, type_);
       if (index === array.length - 1) return stringified;
-      return stringified.concat(separator, $g.SP);
+      return stringified.concat(separator, sigils.SP);
     });
   }
 
   visitCommentNode(comment: astCommon.CommentNode): StringifyResult {
     const commentBegin = comment.isDocComment
-      ? $s.symbol.docCommentBegin
-      : $s.symbol.commentBegin;
+      ? this.symbols.docCommentBegin
+      : this.symbols.commentBegin;
     const commentEnd = comment.isDocComment
-      ? $s.symbol.docCommentEnd
-      : $s.symbol.commentEnd;
+      ? this.symbols.docCommentEnd
+      : this.symbols.commentEnd;
 
     return comment.message.split("\n").flatMap((content, index, array) => {
       if (content.length === 0)
@@ -69,7 +69,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
       return [
         commentBegin,
-        $g.SP,
+        sigils.SP,
         content,
         index < array.length - 1 && commentEnd,
       ];
@@ -84,56 +84,74 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     return path.components.flatMap((component, index, array) => {
       const stringified = component.accept<StringifyResult, this>(this);
       if (index === array.length - 1) return stringified;
-      return stringified.concat($s.symbol.pathSeparator);
+      return stringified.concat(this.symbols.pathSeparator);
     });
   }
 
   visitImportDeclaration(decl: ImportDeclaration): StringifyResult {
-    return [
-      $s.keyword.import,
-      $g.SP,
-      $s.symbol.importBegin,
-      ...decl.path.components.flatMap((component, index, array) => {
-        const stringified = component.accept<StringifyResult, this>(this);
-        if (index === array.length - 1) return stringified;
-        return stringified.concat($s.symbol.importSeparator);
-      }),
-      $s.symbol.importEnd,
-    ];
+    const importContents: StringifyResult = [this.keywords.import, sigils.SP];
+
+    if (this.options.stringImports) {
+      importContents.push(
+        this.symbols.stringBegin,
+        ...this.toSeparatedList(decl.path.components, "/", false),
+        this.symbols.stringEnd
+      );
+    } else {
+      importContents.push(
+        ...decl.path.components.flatMap((component, index, array) => {
+          const stringified: StringifyResult = component.accept(this);
+
+          if (this.options.uppercaseModules) {
+            for (let i = 0; i < stringified.length; i++) {
+              const identifier = stringified[i];
+              if (typeof identifier === "string") {
+                stringified[i] = astCommon.capitalizeModuleName(identifier);
+              }
+            }
+          }
+
+          if (index === array.length - 1) return stringified;
+          return stringified.concat(this.symbols.pathSeparator);
+        })
+      );
+    }
+
+    return importContents;
   }
 
   visitImportDeclarationGroup(decl: ImportDeclarationGroup): StringifyResult {
     return decl.imports.flatMap((node) =>
-      node.accept<StringifyResult, this>(this).concat($g.NL)
+      node.accept<StringifyResult, this>(this).concat(sigils.NL)
     );
   }
 
   visitBindingDeclaration(decl: BindingDeclaration): StringifyResult {
     return [
-      $s.keyword.immutableBinding,
-      $g.SP,
+      this.keywords.immutableBinding,
+      sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
-      $g.SP,
-      $s.symbol.bindingOperator,
-      $g.SP,
+      sigils.SP,
+      this.symbols.bindingOperator,
+      sigils.SP,
       ...decl.value.accept<StringifyResult, this>(this),
     ];
   }
 
   visitFunctionDeclaration(decl: FunctionDeclaration): StringifyResult {
     return [
-      $s.keyword.function,
-      $g.SP,
+      this.keywords.function,
+      sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
-      $s.symbol.functionInvokeBegin,
+      this.symbols.functionInvokeBegin,
       ...this.toParameterList(decl.parameters),
-      $s.symbol.functionInvokeEnd,
-      $g.SP,
+      this.symbols.functionInvokeEnd,
+      sigils.SP,
       ...(decl.returnType
-        ? [$s.symbol.functionReturn, $g.SP, decl.returnType, $g.SP]
+        ? [this.symbols.functionReturn, sigils.SP, decl.returnType, sigils.SP]
         : []),
-      $s.symbol.functionBegin,
-      !(decl.body instanceof BlockExpression) && $g.SP,
+      this.symbols.functionBegin,
+      !(decl.body instanceof BlockExpression) && sigils.SP,
       ...decl.body.accept<StringifyResult, this>(this),
     ];
   }
@@ -146,36 +164,36 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
       if (decl.fields && decl.fields.length > 0) {
         body.push(
-          insertBlock && $g.BEGIN,
+          insertBlock && sigils.BEGIN,
           ...decl.fields.flatMap(({ identifier, type_ }, index, array) => {
             const stringified: StringifyResult = [
               ...identifier.accept<StringifyResult, this>(this),
-              $s.symbol.typeAnnotation,
-              $g.SP,
+              this.symbols.typeAnnotation,
+              sigils.SP,
               type_,
             ];
             if (index === array.length - 1) return stringified;
             return stringified.concat(
-              $s.symbol.recordSeparator,
-              insertBlock ? $g.CONT : $g.SP
+              this.symbols.recordSeparator,
+              insertBlock ? sigils.CONT : sigils.SP
             );
           }),
-          insertBlock && $g.END
+          insertBlock && sigils.END
         );
       }
 
-      return [$s.symbol.recordBegin, ...body, $s.symbol.recordEnd];
+      return [this.symbols.recordBegin, ...body, this.symbols.recordEnd];
     };
 
     return [
-      $s.keyword.type,
-      $g.SP,
+      this.keywords.type,
+      sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
-      $g.SP,
-      $s.symbol.typeBegin,
+      sigils.SP,
+      this.symbols.typeBegin,
       ...(insertBlock
-        ? [$g.BEGIN, ...stringifyRecord(), $g.END, $g.SKIP_NL]
-        : [$g.SP, ...stringifyRecord(), $g.NL]),
+        ? [sigils.BEGIN, ...stringifyRecord(), sigils.END, sigils.SKIP_NL]
+        : [sigils.SP, ...stringifyRecord(), sigils.NL]),
     ];
   }
 
@@ -191,29 +209,29 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitTupleExpression(expr: TupleExpression): StringifyResult {
     return [
-      $s.symbol.tupleBegin,
-      ...this.toSeparatedList(expr.contents, $s.symbol.tupleSeparator),
-      $s.symbol.tupleEnd,
+      this.symbols.tupleBegin,
+      ...this.toSeparatedList(expr.contents, this.symbols.tupleSeparator),
+      this.symbols.tupleEnd,
     ];
   }
 
   visitListExpression(expr: ListExpression): StringifyResult {
     return [
-      $s.symbol.listBegin,
+      this.symbols.listBegin,
       ...this.toSeparatedList(expr.contents),
-      $s.symbol.listEnd,
+      this.symbols.listEnd,
     ];
   }
 
   visitCallExpression(expr: CallExpression): StringifyResult {
     return [
       ...expr.function_.accept<StringifyResult, this>(this),
-      $s.symbol.functionInvokeBegin,
+      this.symbols.functionInvokeBegin,
       ...this.toSeparatedList(
         expr.arguments_,
-        $s.symbol.functionParameterSeparator
+        this.symbols.functionParameterSeparator
       ),
-      $s.symbol.functionInvokeEnd,
+      this.symbols.functionInvokeEnd,
     ];
   }
 
@@ -224,7 +242,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
           ? component
           : component.accept<StringifyResult, this>(this);
       if (index === array.length - 1) return stringified;
-      return stringified.concat($s.symbol.recordPathSeparator);
+      return stringified.concat(this.symbols.recordPathSeparator);
     });
   }
 
@@ -238,28 +256,28 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitBinaryExpression(expr: BinaryExpression): StringifyResult {
     return [
       ...expr.lhs.accept<StringifyResult, this>(this),
-      $g.SP,
+      sigils.SP,
       expr.operator,
-      $g.SP,
+      sigils.SP,
       ...expr.rhs.accept<StringifyResult, this>(this),
     ];
   }
 
   visitBlockExpression(expr: BlockExpression): StringifyResult {
     return [
-      $g.BEGIN,
-      ...this.toSeparatedList(expr.items, $g.CONT, false),
-      $g.END,
+      sigils.BEGIN,
+      ...this.toSeparatedList(expr.items, sigils.CONT, false),
+      sigils.END,
     ];
   }
 
   visitLambdaExpression(expr: LambdaExpression): StringifyResult {
     return [
-      $s.keyword.lambda,
+      this.keywords.lambda,
       ...this.toParameterList(expr.parameters),
-      $g.SP,
-      $s.symbol.lambdaBegin,
-      $g.SP,
+      sigils.SP,
+      this.symbols.lambdaBegin,
+      sigils.SP,
       ...expr.body.accept<StringifyResult, this>(this),
     ];
   }
@@ -267,10 +285,8 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
 // -----------------------------------------------------------------------------
 
-type StringifyOptions = {
-  indentationCount?: number;
-  stripComments?: boolean;
-};
+// deno-lint-ignore no-empty-interface
+interface StringifyOptions extends visitorCommon.AstVisitorOptions {}
 
 export function stringify(
   program: astCommon.Program,
@@ -284,8 +300,8 @@ export function stringify(
   }
 
   const processTopLevelNodes = (node: astCommon.TopLevelNode) => [
-    ...processIndentsForNode(node, options.indentationCount ?? 2),
-    $g.NL,
+    ...processIndentsForNode(node, options),
+    sigils.NL,
   ];
 
   return _program.flatMap(processTopLevelNodes).join("").trim();
@@ -293,15 +309,18 @@ export function stringify(
 
 function processIndentsForNode(
   node: astCommon.TopLevelNode,
-  indentationCount: number
+  options: StringifyOptions
 ) {
-  const visitor = new StringifyVisitor();
+  const visitor = new StringifyVisitor(options);
   const tokens = node
     .accept<StringifyResult, typeof visitor>(visitor)
     .filter((token): token is string => Boolean(token));
 
   const processedTokens: string[] = [];
-  for (const token of processIndentsGenerator(tokens, indentationCount)) {
+  for (const token of processIndentsGenerator(
+    tokens,
+    options.indentationCount ?? 2
+  )) {
     processedTokens.push(token);
   }
 
@@ -314,22 +333,22 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
     if (!token.startsWith("<!--")) {
       yield token;
     } else {
-      if (token === $g.SKIP_NL) continue;
-      else yield $g.NL;
+      if (token === sigils.SKIP_NL) continue;
+      else yield sigils.NL;
 
       switch (token) {
-        case $g.BEGIN:
+        case sigils.BEGIN:
           currIndent += indentationCount;
           yield indent(currIndent);
           break;
-        case $g.CONT:
+        case sigils.CONT:
           yield indent(currIndent);
           break;
-        case $g.END:
+        case sigils.END:
           currIndent = Math.max(0, currIndent - indentationCount);
           yield indent(currIndent);
           break;
-        case $g.RESET:
+        case sigils.RESET:
           currIndent = 0;
           break;
         default:
@@ -340,5 +359,5 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
 }
 
 function indent(times: number) {
-  return $g.SP.repeat(Math.max(0, times));
+  return sigils.SP.repeat(Math.max(0, times));
 }

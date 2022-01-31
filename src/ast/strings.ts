@@ -1,5 +1,3 @@
-const PATH_SEPARATOR = "::";
-
 export const keyword = {
   function: "define",
   immutableBinding: "let",
@@ -19,16 +17,11 @@ export const symbol = {
   functionInvokeEnd: ")",
   functionParameterSeparator: ",",
   functionReturn: "->",
-  // importBegin: '"',
-  // importEnd: '"',
-  importBegin: "",
-  importSeparator: PATH_SEPARATOR,
-  importEnd: "",
   lambdaBegin: "->",
   listBegin: "[",
   listEnd: "]",
   listSeparator: ",",
-  pathSeparator: PATH_SEPARATOR,
+  pathSeparator: "::",
   recordBegin: "@(",
   recordEnd: ")",
   recordPathSeparator: ".",
