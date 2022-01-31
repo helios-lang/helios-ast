@@ -1,27 +1,17 @@
 import {
   AstNode,
-  Identifier,
+  IdentifierNode,
   Literal,
   Operator,
   OptionallyTypedIdentifier,
   OptionalType,
-  Path,
+  PathNode,
 } from "./common.ts";
 
 import { Declaration } from "./decl.ts";
 import { AstVisitor } from "./visitors/mod.ts";
 
 export abstract class Expression extends AstNode {}
-
-export class IdentifierExpression extends Expression {
-  constructor(readonly identifier: Identifier) {
-    super();
-  }
-
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitIdentifierExpression(this);
-  }
-}
 
 export class LiteralExpression extends Expression {
   constructor(readonly literal: Literal) {
@@ -71,7 +61,7 @@ export class ListExpression extends Expression {
 
 export class CallExpression extends Expression {
   constructor(
-    readonly function_: Identifier | Path,
+    readonly function_: IdentifierNode | PathNode,
     readonly arguments_: Expression[]
   ) {
     super();
@@ -83,7 +73,7 @@ export class CallExpression extends Expression {
 }
 
 export class DotExpression extends Expression {
-  constructor(readonly components: (Identifier | CallExpression)[]) {
+  constructor(readonly components: (IdentifierNode | CallExpression)[]) {
     super();
   }
 

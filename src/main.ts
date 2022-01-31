@@ -2,8 +2,16 @@ import * as fs from "https://deno.land/std@0.123.0/fs/mod.ts";
 
 import * as ast from "./ast/mod.ts";
 
+const imports: ast.TopLevelNode[] = [
+  new ast.ImportDeclarationGroup([
+    new ast.ImportDeclaration(ast.path("core", "io")),
+    new ast.ImportDeclaration(ast.path("core", "list")),
+    new ast.ImportDeclaration(ast.path("core", "math")),
+  ]),
+];
+
 const pointRecord: ast.TopLevelNode[] = [
-  ast.comment("A representation of a point in two-dimensional space."),
+  ast.docComment("A representation of a point in two-dimensional space."),
   new ast.RecordTypeDeclaration(ast.ident("Point"), [
     ast.typedIdent("x", ast.type("Float")),
     ast.typedIdent("y", ast.type("Float")),
@@ -11,16 +19,23 @@ const pointRecord: ast.TopLevelNode[] = [
 ];
 
 const distanceFunction: ast.TopLevelNode[] = [
-  ast.comment("Calculates the distance between this point and another point."),
-  ast.comment(""),
-  ast.comment("# Example"),
-  ast.comment(""),
-  ast.comment("```helios"),
-  ast.comment("#? import point"),
-  ast.comment("let a = point::Point(x: 1.0, y: 2.0)"),
-  ast.comment("let b = point::Point(x: 2.0, y: 4.0)"),
-  ast.comment("assert::eq(point::distance_from(a, b), ???)"),
-  ast.comment("```"),
+  ast.docComment(
+    "Calculates the distance between this point and another point.",
+    "",
+    "## Examples",
+    "",
+    "```helios",
+    "> let a = Point(x: 1.0, y: 2.0)",
+    "> let b = Point(x: 2.0, y: 4.0)",
+    "> distance_from(a, b) == ???",
+    "True",
+    "```"
+    // "    > let a = Point(x: 1.0, y: 2.0)",
+    // "    > let b = Point(x: 2.0, y: 4.0)",
+    // "    > distance_from(a, b) == ???",
+    // "    True",
+    // ""
+  ),
   new ast.FunctionDeclaration(
     ast.ident("distance"),
     [
@@ -54,18 +69,16 @@ const distanceFunction: ast.TopLevelNode[] = [
         ])
       ),
       new ast.CallExpression(ast.path("math", "sqrt"), [
-        new ast.BinaryExpression(
-          "+",
-          new ast.IdentifierExpression(ast.ident("dx")),
-          new ast.IdentifierExpression(ast.ident("dy"))
-        ),
+        new ast.BinaryExpression("+", ast.ident("dx"), ast.ident("dy")),
       ]),
     ])
   ),
 ];
 
 const coordSumFunction: ast.TopLevelNode[] = [
-  ast.comment("This function accepts any value with `x`, `y` and `z` fields."),
+  ast.docComment(
+    "This function accepts any value with `x`, `y` and `z` fields."
+  ),
   new ast.FunctionDeclaration(
     ast.ident("coord_sum"),
     [ast.optTypedIdent("values", ast.inferType())],
@@ -78,7 +91,7 @@ const coordSumFunction: ast.TopLevelNode[] = [
           [ast.optTypedIdent("xs", ast.inferType())],
           ast.inferType(),
           new ast.CallExpression(ast.path("list", "reduce"), [
-            new ast.IdentifierExpression(ast.ident("xs")),
+            ast.ident("xs"),
             ast.literal(0),
             new ast.LambdaExpression(
               [
@@ -86,11 +99,7 @@ const coordSumFunction: ast.TopLevelNode[] = [
                 ast.optTypedIdent("cur", ast.inferType()),
               ],
               ast.inferType(),
-              new ast.BinaryExpression(
-                "+",
-                new ast.IdentifierExpression(ast.ident("acc")),
-                new ast.IdentifierExpression(ast.ident("cur"))
-              )
+              new ast.BinaryExpression("+", ast.ident("acc"), ast.ident("cur"))
             ),
           ])
         )
@@ -112,19 +121,27 @@ const mainFunction: ast.TopLevelNode[] = [
     ast.ident("__main__"),
     [],
     ast.inferType(),
-    new ast.TupleExpression([])
+    new ast.BlockExpression([
+      new ast.CallExpression(ast.path("io", "println"), [
+        ast.literal("Hello, world!"),
+      ]),
+    ])
   ),
 ];
 
 const program: ast.Program = new Array<ast.TopLevelNode>().concat(
+  imports,
   pointRecord,
   distanceFunction,
   coordSumFunction,
   mainFunction
 );
 
+const stringified = ast.stringify(program);
+console.log(stringified);
+
 const htmlified = ast.htmlify(program);
-console.log(htmlified);
+// console.log(htmlified);
 
 const fileName = "source.hl.html";
 const filePath = `./out/${fileName}`;

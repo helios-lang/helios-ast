@@ -1,8 +1,9 @@
 import {
   AstNode,
-  Identifier,
+  IdentifierNode,
   OptionallyTypedIdentifier,
   OptionalType,
+  PathNode,
   TypedIdentifier,
 } from "./common.ts";
 
@@ -11,9 +12,29 @@ import { AstVisitor } from "./visitors/mod.ts";
 
 export abstract class Declaration extends AstNode {}
 
+export class ImportDeclaration extends Declaration {
+  constructor(readonly path: PathNode) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitImportDeclaration(this);
+  }
+}
+
+export class ImportDeclarationGroup extends Declaration {
+  constructor(readonly imports: ImportDeclaration[]) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitImportDeclarationGroup(this);
+  }
+}
+
 export class BindingDeclaration extends Declaration {
   constructor(
-    readonly identifier: Identifier,
+    readonly identifier: IdentifierNode,
     readonly type_: OptionalType,
     readonly value: Expression
   ) {
@@ -27,7 +48,7 @@ export class BindingDeclaration extends Declaration {
 
 export class FunctionDeclaration extends Declaration {
   constructor(
-    readonly identifier: Identifier,
+    readonly identifier: IdentifierNode,
     readonly parameters: OptionallyTypedIdentifier[],
     readonly returnType: OptionalType,
     readonly body: Expression
@@ -42,7 +63,7 @@ export class FunctionDeclaration extends Declaration {
 
 export class RecordTypeDeclaration extends Declaration {
   constructor(
-    readonly identifier: Identifier,
+    readonly identifier: IdentifierNode,
     readonly fields?: TypedIdentifier[]
   ) {
     super();

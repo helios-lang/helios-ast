@@ -6,6 +6,8 @@ import * as visitorCommon from "./common.ts";
 import {
   BindingDeclaration,
   FunctionDeclaration,
+  ImportDeclaration,
+  ImportDeclarationGroup,
   RecordTypeDeclaration,
 } from "../decl.ts";
 
@@ -14,7 +16,6 @@ import {
   BlockExpression,
   CallExpression,
   DotExpression,
-  IdentifierExpression,
   LambdaExpression,
   ListExpression,
   LiteralExpression,
@@ -47,26 +48,71 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     separator = $s.symbol.functionParameterSeparator
   ): StringifyResult {
     return parameters.flatMap(({ identifier, type_ }, index, array) => {
-      const stringified: StringifyResult = [identifier];
+      const stringified = identifier.accept<StringifyResult, this>(this);
       if (type_) stringified.push($s.symbol.typeAnnotation, $g.SP, type_);
       if (index === array.length - 1) return stringified;
       return stringified.concat(separator, $g.SP);
     });
   }
 
-  visitComment(comment: astCommon.Comment): StringifyResult {
+  visitCommentNode(comment: astCommon.CommentNode): StringifyResult {
+    const commentBegin = comment.isDocComment
+      ? $s.symbol.docCommentBegin
+      : $s.symbol.commentBegin;
+    const commentEnd = comment.isDocComment
+      ? $s.symbol.docCommentEnd
+      : $s.symbol.commentEnd;
+
+    return comment.message.split("\n").flatMap((content, index, array) => {
+      if (content.length === 0)
+        return [commentBegin, index < array.length - 1 && commentEnd];
+
+      return [
+        commentBegin,
+        $g.SP,
+        content,
+        index < array.length - 1 && commentEnd,
+      ];
+    });
+  }
+
+  visitIdentifierNode(identifier: astCommon.IdentifierNode): StringifyResult {
+    return [identifier.name];
+  }
+
+  visitPathNode(path: astCommon.PathNode): StringifyResult {
+    return path.components.flatMap((component, index, array) => {
+      const stringified = component.accept<StringifyResult, this>(this);
+      if (index === array.length - 1) return stringified;
+      return stringified.concat($s.symbol.pathSeparator);
+    });
+  }
+
+  visitImportDeclaration(decl: ImportDeclaration): StringifyResult {
     return [
-      $s.symbol.commentBegin,
-      comment.message.trim().length > 0 && $g.SP,
-      comment.message,
+      $s.keyword.import,
+      $g.SP,
+      $s.symbol.importBegin,
+      ...decl.path.components.flatMap((component, index, array) => {
+        const stringified = component.accept<StringifyResult, this>(this);
+        if (index === array.length - 1) return stringified;
+        return stringified.concat($s.symbol.importSeparator);
+      }),
+      $s.symbol.importEnd,
     ];
+  }
+
+  visitImportDeclarationGroup(decl: ImportDeclarationGroup): StringifyResult {
+    return decl.imports.flatMap((node) =>
+      node.accept<StringifyResult, this>(this).concat($g.NL)
+    );
   }
 
   visitBindingDeclaration(decl: BindingDeclaration): StringifyResult {
     return [
       $s.keyword.immutableBinding,
       $g.SP,
-      decl.identifier,
+      ...decl.identifier.accept<StringifyResult, this>(this),
       $g.SP,
       $s.symbol.bindingOperator,
       $g.SP,
@@ -78,7 +124,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     return [
       $s.keyword.function,
       $g.SP,
-      decl.identifier,
+      ...decl.identifier.accept<StringifyResult, this>(this),
       $s.symbol.functionInvokeBegin,
       ...this.toParameterList(decl.parameters),
       $s.symbol.functionInvokeEnd,
@@ -87,48 +133,50 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         ? [$s.symbol.functionReturn, $g.SP, decl.returnType, $g.SP]
         : []),
       $s.symbol.functionBegin,
+      !(decl.body instanceof BlockExpression) && $g.SP,
       ...decl.body.accept<StringifyResult, this>(this),
     ];
   }
 
   visitRecordTypeDeclaration(decl: RecordTypeDeclaration): StringifyResult {
-    function stringifyRecord(): StringifyResult {
+    const insertBlock = Boolean(decl.fields && decl.fields?.length >= 4);
+
+    const stringifyRecord = (): StringifyResult => {
       const body: StringifyResult = [];
 
-      if (decl.fields) {
+      if (decl.fields && decl.fields.length > 0) {
         body.push(
-          $g.BEGIN,
+          insertBlock && $g.BEGIN,
           ...decl.fields.flatMap(({ identifier, type_ }, index, array) => {
             const stringified: StringifyResult = [
-              identifier,
+              ...identifier.accept<StringifyResult, this>(this),
               $s.symbol.typeAnnotation,
               $g.SP,
               type_,
             ];
             if (index === array.length - 1) return stringified;
-            return stringified.concat($s.symbol.recordSeparator, $g.CONT);
+            return stringified.concat(
+              $s.symbol.recordSeparator,
+              insertBlock ? $g.CONT : $g.SP
+            );
           }),
-          $g.END
+          insertBlock && $g.END
         );
       }
 
       return [$s.symbol.recordBegin, ...body, $s.symbol.recordEnd];
-    }
+    };
 
     return [
       $s.keyword.type,
       $g.SP,
-      decl.identifier,
+      ...decl.identifier.accept<StringifyResult, this>(this),
       $g.SP,
       $s.symbol.typeBegin,
-      ...(decl.fields
+      ...(insertBlock
         ? [$g.BEGIN, ...stringifyRecord(), $g.END, $g.SKIP_NL]
-        : [$g.SP, ...stringifyRecord()]),
+        : [$g.SP, ...stringifyRecord(), $g.NL]),
     ];
-  }
-
-  visitIdentifierExpression(expr: IdentifierExpression): StringifyResult {
-    return [expr.identifier];
   }
 
   visitLiteralExpression(expr: LiteralExpression): StringifyResult {
@@ -143,7 +191,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitTupleExpression(expr: TupleExpression): StringifyResult {
     return [
-      $s.symbol.typeBegin,
+      $s.symbol.tupleBegin,
       ...this.toSeparatedList(expr.contents, $s.symbol.tupleSeparator),
       $s.symbol.tupleEnd,
     ];
@@ -159,9 +207,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitCallExpression(expr: CallExpression): StringifyResult {
     return [
-      typeof expr.function_ === "string"
-        ? expr.function_
-        : expr.function_.join($s.symbol.modulePathSeparator),
+      ...expr.function_.accept<StringifyResult, this>(this),
       $s.symbol.functionInvokeBegin,
       ...this.toSeparatedList(
         expr.arguments_,
@@ -232,7 +278,9 @@ export function stringify(
 ): string {
   let _program = program;
   if (options.stripComments) {
-    _program = program.filter((item) => !(item instanceof astCommon.Comment));
+    _program = program.filter(
+      (item) => !(item instanceof astCommon.CommentNode)
+    );
   }
 
   const processTopLevelNodes = (node: astCommon.TopLevelNode) => [
