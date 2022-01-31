@@ -10,15 +10,16 @@ import {
 } from "../decl.ts";
 
 import {
-  IdentifierExpression,
-  LiteralExpression,
-  ListExpression,
-  CallExpression,
-  DotExpression,
-  UnaryExpression,
   BinaryExpression,
   BlockExpression,
+  CallExpression,
+  DotExpression,
+  IdentifierExpression,
   LambdaExpression,
+  ListExpression,
+  LiteralExpression,
+  TupleExpression,
+  UnaryExpression,
 } from "../expr.ts";
 
 export type StringifyResult = (string | false)[];
@@ -137,6 +138,14 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
           ? expr.literal.value.toFixed(1)
           : expr.literal.value
       }`,
+    ];
+  }
+
+  visitTupleExpression(expr: TupleExpression): StringifyResult {
+    return [
+      $s.symbol.typeBegin,
+      ...this.toSeparatedList(expr.contents, $s.symbol.tupleSeparator),
+      $s.symbol.tupleEnd,
     ];
   }
 

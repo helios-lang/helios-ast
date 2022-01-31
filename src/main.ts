@@ -38,7 +38,7 @@ const distanceFunction: ast.TopLevelNode[] = [
             new ast.DotExpression([ast.ident("b"), ast.ident("x")]),
             new ast.DotExpression([ast.ident("a"), ast.ident("x")])
           ),
-          new ast.LiteralExpression({ kind: "float", value: 2.0 }),
+          ast.literal(2.0, true),
         ])
       ),
       new ast.BindingDeclaration(
@@ -50,7 +50,7 @@ const distanceFunction: ast.TopLevelNode[] = [
             new ast.DotExpression([ast.ident("b"), ast.ident("y")]),
             new ast.DotExpression([ast.ident("a"), ast.ident("y")])
           ),
-          new ast.LiteralExpression({ kind: "float", value: 2.0 }),
+          ast.literal(2.0, true),
         ])
       ),
       new ast.CallExpression(ast.path("math", "sqrt"), [
@@ -79,7 +79,7 @@ const coordSumFunction: ast.TopLevelNode[] = [
           ast.inferType(),
           new ast.CallExpression(ast.path("list", "reduce"), [
             new ast.IdentifierExpression(ast.ident("xs")),
-            new ast.LiteralExpression({ kind: "integer", value: 0 }),
+            ast.literal(0),
             new ast.LambdaExpression(
               [
                 ast.optTypedIdent("acc", ast.inferType()),
@@ -112,7 +112,7 @@ const mainFunction: ast.TopLevelNode[] = [
     ast.ident("__main__"),
     [],
     ast.inferType(),
-    new ast.LiteralExpression({ kind: "integer", value: 0 })
+    new ast.TupleExpression([])
   ),
 ];
 

@@ -28,8 +28,34 @@ export class LiteralExpression extends Expression {
     super();
   }
 
+  static Boolean(value: boolean): LiteralExpression {
+    return new LiteralExpression({ kind: "boolean", value });
+  }
+
+  static Integer(value: number): LiteralExpression {
+    return new LiteralExpression({ kind: "integer", value });
+  }
+
+  static Float(value: number): LiteralExpression {
+    return new LiteralExpression({ kind: "float", value });
+  }
+
+  static String(value: string): LiteralExpression {
+    return new LiteralExpression({ kind: "string", value });
+  }
+
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
     return visitor.visitLiteralExpression(this);
+  }
+}
+
+export class TupleExpression extends Expression {
+  constructor(readonly contents: Expression[]) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitTupleExpression(this);
   }
 }
 

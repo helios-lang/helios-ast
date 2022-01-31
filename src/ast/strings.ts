@@ -23,6 +23,9 @@ export const symbol = {
   recordEnd: ")",
   recordPathSeparator: ".",
   recordSeparator: ",",
+  tupleBegin: "(",
+  tupleEnd: ")",
+  tupleSeparator: ",",
   typeAnnotation: ":",
   typeBegin: "=",
 };

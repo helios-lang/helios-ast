@@ -7,15 +7,16 @@ import {
 } from "../decl.ts";
 
 import {
-  IdentifierExpression,
-  LiteralExpression,
-  ListExpression,
-  CallExpression,
-  DotExpression,
-  UnaryExpression,
   BinaryExpression,
   BlockExpression,
+  CallExpression,
+  DotExpression,
+  IdentifierExpression,
   LambdaExpression,
+  ListExpression,
+  LiteralExpression,
+  TupleExpression,
+  UnaryExpression,
 } from "../expr.ts";
 
 export abstract class AstVisitor<R> {
@@ -33,6 +34,7 @@ export abstract class AstVisitor<R> {
 
   abstract visitIdentifierExpression(expr: IdentifierExpression): R;
   abstract visitLiteralExpression(expr: LiteralExpression): R;
+  abstract visitTupleExpression(expr: TupleExpression): R;
   abstract visitListExpression(expr: ListExpression): R;
   abstract visitCallExpression(expr: CallExpression): R;
   abstract visitDotExpression(expr: DotExpression): R;

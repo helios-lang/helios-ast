@@ -10,15 +10,16 @@ import {
 } from "../decl.ts";
 
 import {
-  IdentifierExpression,
-  LiteralExpression,
-  ListExpression,
-  CallExpression,
-  DotExpression,
-  UnaryExpression,
   BinaryExpression,
   BlockExpression,
+  CallExpression,
+  DotExpression,
+  IdentifierExpression,
   LambdaExpression,
+  ListExpression,
+  LiteralExpression,
+  TupleExpression,
+  UnaryExpression,
 } from "../expr.ts";
 
 export enum HtmlClass {
@@ -224,6 +225,17 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       default:
         return [s([HtmlClass.STRING], t(`"${expr.literal.value}"`))];
     }
+  }
+
+  visitTupleExpression(expr: TupleExpression): HtmlifyResult {
+    return [
+      s([HtmlClass.SYMBOL], t($s.symbol.tupleBegin)),
+      ...this.toSeparatedList(
+        expr.contents,
+        s([HtmlClass.SYMBOL], t($s.symbol.tupleSeparator))
+      ),
+      s([HtmlClass.SYMBOL], t($s.symbol.tupleEnd)),
+    ];
   }
 
   visitListExpression(expr: ListExpression): HtmlifyResult {
