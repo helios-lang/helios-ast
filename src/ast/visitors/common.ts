@@ -14,6 +14,7 @@ import {
   BlockExpression,
   CallExpression,
   DotExpression,
+  InterpolatedStringExpression,
   LambdaExpression,
   ListExpression,
   LiteralExpression,
@@ -64,6 +65,9 @@ export abstract class AstVisitor<R> {
   // --- EXPRESSIONS ---
 
   abstract visitLiteralExpression(expr: LiteralExpression): R;
+  abstract visitInterpolatedStringExpression(
+    expr: InterpolatedStringExpression
+  ): R;
   abstract visitTupleExpression(expr: TupleExpression): R;
   abstract visitListExpression(expr: ListExpression): R;
   abstract visitCallExpression(expr: CallExpression): R;

@@ -29,6 +29,8 @@ export const symbol = {
   recordSeparator: ",",
   stringBegin: '"',
   stringEnd: '"',
+  stringInterpolationBegin: "\\(",
+  stringInterpolationEnd: ")",
   tupleBegin: "(",
   tupleEnd: ")",
   tupleSeparator: ",",

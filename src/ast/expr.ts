@@ -39,6 +39,16 @@ export class LiteralExpression extends Expression {
   }
 }
 
+export class InterpolatedStringExpression extends Expression {
+  constructor(readonly components: ReadonlyArray<string | Expression>) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitInterpolatedStringExpression(this);
+  }
+}
+
 export class TupleExpression extends Expression {
   constructor(readonly contents: ReadonlyArray<Expression>) {
     super();

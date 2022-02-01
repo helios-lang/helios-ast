@@ -15,6 +15,7 @@ import {
   BlockExpression,
   CallExpression,
   DotExpression,
+  InterpolatedStringExpression,
   LambdaExpression,
   ListExpression,
   LiteralExpression,
@@ -226,6 +227,27 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
           : expr.literal.value
       }`,
     ];
+  }
+
+  visitInterpolatedStringExpression(
+    expr: InterpolatedStringExpression
+  ): StringifyResult {
+    const stringified: StringifyResult = [this.symbols.stringBegin];
+
+    for (const component of expr.components) {
+      if (typeof component === "string") {
+        stringified.push(component);
+      } else {
+        stringified.push(
+          this.symbols.stringInterpolationBegin,
+          ...component.accept<StringifyResult, this>(this),
+          this.symbols.stringInterpolationEnd
+        );
+      }
+    }
+
+    stringified.push(this.symbols.stringEnd);
+    return stringified;
   }
 
   visitTupleExpression(expr: TupleExpression): StringifyResult {

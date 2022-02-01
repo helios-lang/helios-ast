@@ -141,7 +141,13 @@ const mainFunction: ast.TopLevelNode[] = [
     ast.inferredType(),
     new ast.BlockExpression([
       new ast.CallExpression(ast.path("io", "println"), [
-        ast.literal("Hello, world!"),
+        new ast.InterpolatedStringExpression([
+          "Hello, my name is ",
+          ast.ident("name"),
+          " and I am ",
+          new ast.BinaryExpression("+", ast.literal(20), ast.literal(2)),
+          " years old!",
+        ]),
       ]),
     ])
   ),

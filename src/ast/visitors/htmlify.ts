@@ -15,6 +15,7 @@ import {
   BlockExpression,
   CallExpression,
   DotExpression,
+  InterpolatedStringExpression,
   LambdaExpression,
   ListExpression,
   LiteralExpression,
@@ -36,10 +37,15 @@ export enum HtmlClass {
   TYPE = "typ",
 }
 
-export type HtmlElement =
-  | { tag: "sigil"; text: string }
-  | { tag: "text"; text: string }
-  | { tag: "span"; classes: HtmlClass[]; children?: HtmlElement[] };
+type SigilHtmlElement = { tag: "sigil"; text: string };
+type TextHtmlElement = { tag: "text"; text: string };
+type SpanHtmlElement = {
+  tag: "span";
+  classes: HtmlClass[];
+  children?: HtmlElement[];
+};
+
+export type HtmlElement = SigilHtmlElement | TextHtmlElement | SpanHtmlElement;
 
 const t = (text: string): HtmlElement => ({ tag: "text", text });
 
@@ -337,6 +343,26 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     }
   }
 
+  visitInterpolatedStringExpression(
+    expr: InterpolatedStringExpression
+  ): HtmlifyResult {
+    return expr.components.flatMap((component, index, array) => {
+      if (typeof component === "string") {
+        const strings: string[] = [];
+        if (index === 0) strings.push(this.symbols.stringBegin);
+        strings.push(component);
+        if (index === array.length - 1) strings.push(this.symbols.stringEnd);
+        return s([HtmlClass.STRING], t(strings.join("")));
+      } else {
+        return [
+          s([HtmlClass.KEYWORD], t(this.symbols.stringInterpolationBegin)),
+          ...component.accept<HtmlifyResult, this>(this),
+          s([HtmlClass.KEYWORD], t(this.symbols.stringInterpolationEnd)),
+        ];
+      }
+    });
+  }
+
   visitTupleExpression(expr: TupleExpression): HtmlifyResult {
     return [
       s([HtmlClass.SYMBOL], t(this.symbols.tupleBegin)),
@@ -474,10 +500,10 @@ export function htmlify(
     `<!DOCTYPE html>`,
     `<html lang="en">`,
     `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="lang.css" /><title>program.hl</title></head>`,
+    `<body>`,
     `<pre class="source">`,
     source,
     `</pre>`,
-    `<body>`,
     `</body>`,
     `</html>`,
   ].join("");
