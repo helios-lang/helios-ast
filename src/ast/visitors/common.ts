@@ -1,5 +1,5 @@
-import * as common from "../common.ts";
-import * as strings from "../strings.ts";
+import * as common from '../common.ts';
+import * as strings from '../strings.ts';
 
 import {
   BindingDeclaration,
@@ -7,7 +7,7 @@ import {
   ImportDeclaration,
   ImportDeclarationGroup,
   TypeDeclaration,
-} from "../decl.ts";
+} from '../decl.ts';
 
 import {
   BinaryExpression,
@@ -20,7 +20,7 @@ import {
   LiteralExpression,
   TupleExpression,
   UnaryExpression,
-} from "../expr.ts";
+} from '../expr.ts';
 
 export interface AstVisitorOptions {
   stringImports?: boolean;
@@ -37,7 +37,7 @@ export abstract class AstVisitor<R> {
   readonly symbols: typeof strings.symbol;
   readonly options: Omit<
     AstVisitorOptions,
-    "keywordDictionary" | "symbolDictionary"
+    'keywordDictionary' | 'symbolDictionary'
   >;
 
   constructor(options: AstVisitorOptions) {
@@ -67,7 +67,7 @@ export abstract class AstVisitor<R> {
 
   abstract visitLiteralExpression(expr: LiteralExpression): R;
   abstract visitInterpolatedStringExpression(
-    expr: InterpolatedStringExpression
+    expr: InterpolatedStringExpression,
   ): R;
   abstract visitTupleExpression(expr: TupleExpression): R;
   abstract visitListExpression(expr: ListExpression): R;

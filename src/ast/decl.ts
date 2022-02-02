@@ -5,10 +5,10 @@ import {
   PathNode,
   TypeNodeChild,
   TypeNodeOrNull,
-} from "./common.ts";
+} from './common.ts';
 
-import { Expression } from "./expr.ts";
-import { AstVisitor } from "./visitors/mod.ts";
+import { Expression } from './expr.ts';
+import { AstVisitor } from './visitors/mod.ts';
 
 export abstract class Declaration extends AstNode {}
 
@@ -36,7 +36,7 @@ export class BindingDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
     readonly identifierType: TypeNodeOrNull,
-    readonly value: Expression
+    readonly value: Expression,
   ) {
     super();
   }
@@ -51,7 +51,7 @@ export class FunctionDeclaration extends Declaration {
     readonly identifier: IdentifierNode,
     readonly parameters: MaybeTypedIdentifier[],
     readonly returnType: TypeNodeOrNull,
-    readonly body: Expression
+    readonly body: Expression,
   ) {
     super();
   }
@@ -64,7 +64,7 @@ export class FunctionDeclaration extends Declaration {
 export class TypeDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly body: TypeNodeChild
+    readonly body: TypeNodeChild,
   ) {
     super();
   }

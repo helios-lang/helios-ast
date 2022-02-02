@@ -1,6 +1,6 @@
-import * as sigils from "../sigils.ts";
-import * as astCommon from "../common.ts";
-import * as visitorCommon from "./common.ts";
+import * as sigils from '../sigils.ts';
+import * as astCommon from '../common.ts';
+import * as visitorCommon from './common.ts';
 
 import {
   BindingDeclaration,
@@ -8,7 +8,7 @@ import {
   ImportDeclaration,
   ImportDeclarationGroup,
   TypeDeclaration,
-} from "../decl.ts";
+} from '../decl.ts';
 
 import {
   BinaryExpression,
@@ -21,7 +21,7 @@ import {
   LiteralExpression,
   TupleExpression,
   UnaryExpression,
-} from "../expr.ts";
+} from '../expr.ts';
 
 export type StringifyResult = (string | false)[];
 
@@ -29,7 +29,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   private toSeparatedList(
     nodes: ReadonlyArray<astCommon.AstNode>,
     separator = this.symbols.listSeparator,
-    addSpace = true
+    addSpace = true,
   ): StringifyResult {
     return nodes.flatMap((node, index, array) => {
       const stringified = node.accept<StringifyResult, this>(this);
@@ -42,7 +42,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   private toParameterList(
     parameters: ReadonlyArray<astCommon.MaybeTypedIdentifier>,
-    separator = this.symbols.functionParameterSeparator
+    separator = this.symbols.functionParameterSeparator,
   ): StringifyResult {
     return parameters.flatMap(
       ({ identifier, identifierType }, index, array) => {
@@ -52,18 +52,18 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
           stringified.push(
             this.symbols.typeAnnotation,
             sigils.SP,
-            ...identifierType.accept<StringifyResult, this>(this)
+            ...identifierType.accept<StringifyResult, this>(this),
           );
         }
 
         if (index === array.length - 1) return stringified;
         return stringified.concat(separator, sigils.SP);
-      }
+      },
     );
   }
 
   visitCommentNode(node: astCommon.CommentNode): StringifyResult {
-    return node.comment.split("\n").flatMap((content, index, array) => {
+    return node.comment.split('\n').flatMap((content, index, array) => {
       const commentBegin = node.isDocComment
         ? this.symbols.docCommentBegin
         : this.symbols.commentBegin;
@@ -100,7 +100,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitAnonymousRecordNode(
-    node: astCommon.AnonymousRecordNode
+    node: astCommon.AnonymousRecordNode,
   ): StringifyResult {
     // TODO: Add support for preferTrailingSeparators
     const multiline = Boolean(node.fields && node.fields?.length >= 4);
@@ -120,11 +120,11 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             if (index === array.length - 1) return stringified;
             return stringified.concat(
               this.symbols.recordSeparator,
-              multiline ? sigils.CONT : sigils.SP
+              multiline ? sigils.CONT : sigils.SP,
             );
-          }
+          },
         ),
-        multiline && sigils.END
+        multiline && sigils.END,
       );
     }
 
@@ -137,8 +137,8 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     if (this.options.stringImports) {
       importContents.push(
         this.symbols.stringBegin,
-        ...this.toSeparatedList(decl.path.components, "/", false),
-        this.symbols.stringEnd
+        ...this.toSeparatedList(decl.path.components, '/', false),
+        this.symbols.stringEnd,
       );
     } else {
       importContents.push(
@@ -148,7 +148,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
           if (this.options.uppercaseModules) {
             for (let i = 0; i < stringified.length; i++) {
               const identifier = stringified[i];
-              if (typeof identifier === "string") {
+              if (typeof identifier === 'string') {
                 stringified[i] = astCommon.capitalizeModuleName(identifier);
               }
             }
@@ -156,7 +156,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
           if (index === array.length - 1) return stringified;
           return stringified.concat(this.symbols.pathSeparator);
-        })
+        }),
       );
     }
 
@@ -165,7 +165,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitImportDeclarationGroup(decl: ImportDeclarationGroup): StringifyResult {
     return decl.imports.flatMap((node) =>
-      node.accept<StringifyResult, this>(this).concat(sigils.NL)
+      node.accept<StringifyResult, this>(this).concat(sigils.NL),
     );
   }
 
@@ -215,7 +215,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitLiteralExpression(expr: LiteralExpression): StringifyResult {
     return [
       `${
-        expr.literal.kind === "float"
+        expr.literal.kind === 'float'
           ? expr.literal.value.toFixed(1)
           : expr.literal.value
       }`,
@@ -223,18 +223,18 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitInterpolatedStringExpression(
-    expr: InterpolatedStringExpression
+    expr: InterpolatedStringExpression,
   ): StringifyResult {
     const stringified: StringifyResult = [this.symbols.stringBegin];
 
     for (const component of expr.components) {
-      if (typeof component === "string") {
+      if (typeof component === 'string') {
         stringified.push(component);
       } else {
         stringified.push(
           this.symbols.stringInterpolationBegin,
           ...component.accept<StringifyResult, this>(this),
-          this.symbols.stringInterpolationEnd
+          this.symbols.stringInterpolationEnd,
         );
       }
     }
@@ -271,14 +271,14 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
       stringifiedFunctionIdentifier.push(
         ...new astCommon.PathNode(allButLast).accept<StringifyResult, this>(
-          this
-        )
+          this,
+        ),
       );
 
       if (last) {
         stringifiedFunctionIdentifier.push(
           this.symbols.pathSeparator,
-          last.name
+          last.name,
         );
       }
     }
@@ -288,7 +288,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.symbols.functionInvokeBegin,
       ...this.toSeparatedList(
         expr.arguments_,
-        this.symbols.functionParameterSeparator
+        this.symbols.functionParameterSeparator,
       ),
       this.symbols.functionInvokeEnd,
     ];
@@ -297,7 +297,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitDotExpression(expr: DotExpression): StringifyResult {
     return expr.components.flatMap((component, index, array) => {
       const stringified =
-        typeof component === "string"
+        typeof component === 'string'
           ? component
           : component.accept<StringifyResult, this>(this);
       if (index === array.length - 1) return stringified;
@@ -349,12 +349,12 @@ interface StringifyOptions extends visitorCommon.AstVisitorOptions {}
 
 export function stringify(
   program: astCommon.Program,
-  options: StringifyOptions = {}
+  options: StringifyOptions = {},
 ): string {
   let _program = program;
   if (options.stripComments) {
     _program = program.filter(
-      (item) => !(item instanceof astCommon.CommentNode)
+      (item) => !(item instanceof astCommon.CommentNode),
     );
   }
 
@@ -363,12 +363,12 @@ export function stringify(
     sigils.NL,
   ];
 
-  return _program.flatMap(processTopLevelNodes).join("").trim();
+  return _program.flatMap(processTopLevelNodes).join('').trim();
 }
 
 function processIndentsForNode(
   node: astCommon.TopLevelNode,
-  options: StringifyOptions
+  options: StringifyOptions,
 ) {
   const visitor = new StringifyVisitor(options);
   const tokens = node
@@ -378,7 +378,7 @@ function processIndentsForNode(
   const processedTokens: string[] = [];
   for (const token of processIndentsGenerator(
     tokens,
-    options.indentationCount ?? 2
+    options.indentationCount ?? 2,
   )) {
     processedTokens.push(token);
   }
@@ -389,7 +389,7 @@ function processIndentsForNode(
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
   let currIndent = 0;
   for (const token of tokens) {
-    if (!token.startsWith("<!--")) {
+    if (!token.startsWith('<!--')) {
       yield token;
     } else {
       if (token === sigils.SKIP_NL) continue;

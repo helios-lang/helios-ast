@@ -1,30 +1,30 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { Declaration } from "./decl.ts";
-import { LiteralExpression } from "./mod.ts";
-import { AstVisitor } from "./visitors/mod.ts";
+import { Declaration } from './decl.ts';
+import { LiteralExpression } from './mod.ts';
+import { AstVisitor } from './visitors/mod.ts';
 
 type Identifier = string & { __identifierBrand: any };
-export type Operator = "+" | "-" | "*" | "/";
+export type Operator = '+' | '-' | '*' | '/';
 
 export type Literal =
-  | { kind: "boolean"; value: boolean }
-  | { kind: "integer"; value: number }
-  | { kind: "float"; value: number }
-  | { kind: "string"; value: string };
+  | { kind: 'boolean'; value: boolean }
+  | { kind: 'integer'; value: number }
+  | { kind: 'float'; value: number }
+  | { kind: 'string'; value: string };
 
 export type Atom =
-  | { kind: "identifier"; identifier: Identifier }
-  | { kind: "literal"; literal: Literal }
-  | { kind: "list"; values: Atom[] };
+  | { kind: 'identifier'; identifier: Identifier }
+  | { kind: 'literal'; literal: Literal }
+  | { kind: 'list'; values: Atom[] };
 
 export type StringifyResult = (false | string)[];
 
 export const comment = (...contents: string[]): CommentNode =>
-  new CommentNode(contents.join("\n"));
+  new CommentNode(contents.join('\n'));
 
 export const docComment = (...contents: string[]): CommentNode =>
-  new CommentNode(contents.join("\n"), true);
+  new CommentNode(contents.join('\n'), true);
 
 export const ident = (identifier: string): IdentifierNode =>
   new IdentifierNode(identifier as Identifier);
@@ -40,14 +40,14 @@ export const inferredType = (): TypeNodeOrNull => null;
 
 export function typedIdent(
   identifier: string,
-  child: TypeNodeChild
+  child: TypeNodeChild,
 ): AlwaysTypedIdentifier {
   return { identifier: ident(identifier), identifierType: type(child) };
 }
 
 export function optTypedIdent(
   identifier: string,
-  child: TypeNodeChild | null = null
+  child: TypeNodeChild | null = null,
 ): MaybeTypedIdentifier {
   return {
     identifier: ident(identifier),
@@ -57,18 +57,18 @@ export function optTypedIdent(
 
 export const literal = (
   value: boolean | number | string,
-  floatingPoint = false
+  floatingPoint = false,
 ): LiteralExpression => {
   switch (typeof value) {
-    case "boolean":
+    case 'boolean':
       return LiteralExpression.Boolean(value);
-    case "number":
-      if (floatingPoint || value.toString().includes(".")) {
+    case 'number':
+      if (floatingPoint || value.toString().includes('.')) {
         return LiteralExpression.Float(value);
       } else {
         return LiteralExpression.Integer(value);
       }
-    case "string":
+    case 'string':
     default:
       return LiteralExpression.String(String(value));
   }
@@ -81,7 +81,7 @@ export abstract class AstNode {
 export class CommentNode extends AstNode {
   constructor(
     readonly comment: string,
-    readonly isDocComment: boolean = false
+    readonly isDocComment: boolean = false,
   ) {
     super();
   }

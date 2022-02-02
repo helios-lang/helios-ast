@@ -6,10 +6,10 @@ import {
   MaybeTypedIdentifier,
   TypeNodeOrNull,
   PathNode,
-} from "./common.ts";
+} from './common.ts';
 
-import { Declaration } from "./decl.ts";
-import { AstVisitor } from "./visitors/mod.ts";
+import { Declaration } from './decl.ts';
+import { AstVisitor } from './visitors/mod.ts';
 
 export abstract class Expression extends AstNode {}
 
@@ -19,19 +19,19 @@ export class LiteralExpression extends Expression {
   }
 
   static Boolean(value: boolean): LiteralExpression {
-    return new LiteralExpression({ kind: "boolean", value });
+    return new LiteralExpression({ kind: 'boolean', value });
   }
 
   static Integer(value: number): LiteralExpression {
-    return new LiteralExpression({ kind: "integer", value });
+    return new LiteralExpression({ kind: 'integer', value });
   }
 
   static Float(value: number): LiteralExpression {
-    return new LiteralExpression({ kind: "float", value });
+    return new LiteralExpression({ kind: 'float', value });
   }
 
   static String(value: string): LiteralExpression {
-    return new LiteralExpression({ kind: "string", value });
+    return new LiteralExpression({ kind: 'string', value });
   }
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
@@ -72,7 +72,7 @@ export class ListExpression extends Expression {
 export class CallExpression extends Expression {
   constructor(
     readonly function_: IdentifierNode | PathNode,
-    readonly arguments_: ReadonlyArray<Expression>
+    readonly arguments_: ReadonlyArray<Expression>,
   ) {
     super();
   }
@@ -106,7 +106,7 @@ export class BinaryExpression extends Expression {
   constructor(
     readonly operator: Operator,
     readonly lhs: Expression,
-    readonly rhs: Expression
+    readonly rhs: Expression,
   ) {
     super();
   }
@@ -130,7 +130,7 @@ export class LambdaExpression extends Expression {
   constructor(
     readonly parameters: ReadonlyArray<MaybeTypedIdentifier>,
     readonly returnType: TypeNodeOrNull,
-    readonly body: Expression
+    readonly body: Expression,
   ) {
     super();
   }
