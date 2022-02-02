@@ -164,9 +164,7 @@ const program: ast.Program = new Array<ast.TopLevelNode>().concat(
 
 async function main() {
   const options: ast.AstVisitorOptions = {
-    // stringImports: true,
-    // uppercaseModules: true,
-    keywords: {},
+    preferTrailingSeparators: true,
     symbols: {
       // pathSeparator: ".",
     },

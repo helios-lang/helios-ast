@@ -122,23 +122,18 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitCommentNode(node: astCommon.CommentNode): HtmlifyResult {
-    const children: HtmlElement[] = [];
-    const commentBegin = node.isDocComment
-      ? this.symbols.docCommentBegin
-      : this.symbols.commentBegin;
-    const commentEnd = node.isDocComment
-      ? this.symbols.docCommentEnd
-      : this.symbols.commentEnd;
-
-    const parts = node.message.split("\n");
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      children.push(t(commentBegin));
-      if (part) children.push(g.SP, t(part));
-      if (i < parts.length - 1) children.push(t(commentEnd));
-    }
-
-    return [s([HtmlClass.COMMENT], children)];
+    return node.comment.split("\n").flatMap((line, index, array) => {
+      const commentBegin = node.isDocComment
+        ? this.symbols.docCommentBegin
+        : this.symbols.commentBegin;
+      return [
+        s(
+          [HtmlClass.COMMENT],
+          t(line.length > 0 ? commentBegin + sigils.SP + line : commentBegin)
+        ),
+        index < array.length - 1 && g.NL,
+      ];
+    });
   }
 
   visitIdentifierNode(node: astCommon.IdentifierNode): HtmlifyResult {
@@ -168,39 +163,57 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitAnonymousRecordNode(node: astCommon.AnonymousRecordNode): HtmlifyResult {
-    const insertBlock = Boolean(node.fields && node.fields.length >= 4);
+    const multiline = Boolean(node.fields && node.fields.length >= 4);
     const body: HtmlifyResult = [];
 
     if (node.fields && node.fields.length > 0) {
       body.push(
-        insertBlock && g.BEGIN,
+        multiline && g.BEGIN,
         ...node.fields.flatMap(
           ({ identifier, identifierType }, index, array) => {
+            const isAtEnd = index === array.length - 1;
             const htmlified: HtmlifyResult = [
               s(
                 [HtmlClass.CONSTRUCTOR],
                 t(`${identifier.name}${this.symbols.typeAnnotation}`)
               ),
               g.SP,
-              // s([HtmlClass.TYPE], t(type_)),
               ...identifierType.accept<HtmlifyResult, this>(this),
             ];
 
-            if (index === array.length - 1) return htmlified;
-            return htmlified.concat(
-              s([HtmlClass.SYMBOL], t(this.symbols.recordSeparator)),
-              insertBlock ? g.CONT : g.SP
-            );
+            const pushRecordSeparator = () =>
+              htmlified.push(
+                s([HtmlClass.SYMBOL], t(this.symbols.recordSeparator))
+              );
+
+            if (multiline) {
+              if (!isAtEnd) {
+                pushRecordSeparator();
+                htmlified.push(g.CONT);
+              } else if (this.options.preferTrailingSeparators) {
+                pushRecordSeparator();
+              }
+            } else {
+              if (!isAtEnd) {
+                pushRecordSeparator();
+                htmlified.push(g.SP);
+              }
+            }
+
+            return htmlified;
           }
         ),
-        insertBlock && g.END
+        multiline && g.END
       );
     }
 
     return [
+      multiline && g.BEGIN,
       s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordBegin)),
       ...body,
       s([HtmlClass.CONSTRUCTOR], t(this.symbols.recordEnd)),
+      multiline && g.RESET,
+      multiline && g.SKIP_NL,
     ];
   }
 
@@ -491,8 +504,19 @@ export function htmlify(
     );
   }
 
-  const source = _program
+  const table = _program
     .flatMap((node) => [...processNode(node, options), sigils.NL])
+    .join("")
+    .trim()
+    .split("\n")
+    .map((line, index) => {
+      return [
+        `<tr>`,
+        `<td id="L${index + 1}" class="blob number">${index + 1}</td>`,
+        `<td class="blob line">${line}</td>`,
+        `</tr>`,
+      ].join("");
+    })
     .join("")
     .trim();
 
@@ -501,9 +525,9 @@ export function htmlify(
     `<html lang="en">`,
     `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="lang.css" /><title>program.hl</title></head>`,
     `<body>`,
-    `<pre class="source">`,
-    source,
-    `</pre>`,
+    `<table><tbody>\n`,
+    table,
+    `</tbody></table>`,
     `</body>`,
     `</html>`,
   ].join("");
@@ -530,7 +554,7 @@ function htmlElementsToStrings(
     switch (child.tag) {
       case "sigil": {
         if (child.text === sigils.SP) {
-          processed.push(sigils.SP);
+          processed.push("&nbsp;");
           return;
         }
 
@@ -583,5 +607,5 @@ function htmlElementsToStrings(
 }
 
 function indent(times: number) {
-  return sigils.SP.repeat(Math.max(0, times));
+  return "&nbsp;".repeat(Math.max(0, times));
 }

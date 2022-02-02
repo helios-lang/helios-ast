@@ -80,7 +80,7 @@ export abstract class AstNode {
 
 export class CommentNode extends AstNode {
   constructor(
-    readonly message: string,
+    readonly comment: string,
     readonly isDocComment: boolean = false
   ) {
     super();

@@ -10,7 +10,6 @@ export const keyword = {
 export const symbol = {
   bindingOperator: "=",
   commentBegin: "#",
-  commentEnd: "\n",
   docCommentBegin: "##",
   docCommentEnd: "\n",
   functionBegin: "=",

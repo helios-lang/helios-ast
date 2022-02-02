@@ -63,22 +63,14 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitCommentNode(node: astCommon.CommentNode): StringifyResult {
-    const commentBegin = node.isDocComment
-      ? this.symbols.docCommentBegin
-      : this.symbols.commentBegin;
-    const commentEnd = node.isDocComment
-      ? this.symbols.docCommentEnd
-      : this.symbols.commentEnd;
-
-    return node.message.split("\n").flatMap((content, index, array) => {
-      if (content.length === 0)
-        return [commentBegin, index < array.length - 1 && commentEnd];
-
+    return node.comment.split("\n").flatMap((content, index, array) => {
+      const commentBegin = node.isDocComment
+        ? this.symbols.docCommentBegin
+        : this.symbols.commentBegin;
       return [
         commentBegin,
-        sigils.SP,
-        content,
-        index < array.length - 1 && commentEnd,
+        content.length > 0 && sigils.SP + content,
+        index < array.length - 1 && sigils.NL,
       ];
     });
   }
@@ -110,12 +102,13 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitAnonymousRecordNode(
     node: astCommon.AnonymousRecordNode
   ): StringifyResult {
-    const insertBlock = Boolean(node.fields && node.fields?.length >= 4);
+    // TODO: Add support for preferTrailingSeparators
+    const multiline = Boolean(node.fields && node.fields?.length >= 4);
     const body: StringifyResult = [];
 
     if (node.fields && node.fields.length > 0) {
       body.push(
-        insertBlock && sigils.BEGIN,
+        multiline && sigils.BEGIN,
         ...node.fields.flatMap(
           ({ identifier, identifierType }, index, array) => {
             const stringified: StringifyResult = [
@@ -127,11 +120,11 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             if (index === array.length - 1) return stringified;
             return stringified.concat(
               this.symbols.recordSeparator,
-              insertBlock ? sigils.CONT : sigils.SP
+              multiline ? sigils.CONT : sigils.SP
             );
           }
         ),
-        insertBlock && sigils.END
+        multiline && sigils.END
       );
     }
 

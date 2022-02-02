@@ -27,6 +27,7 @@ export interface AstVisitorOptions {
   indentationCount?: number;
   stripComments?: boolean;
   uppercaseModules?: boolean;
+  preferTrailingSeparators?: boolean;
   keywords?: Partial<typeof strings.keyword>;
   symbols?: Partial<typeof strings.symbol>;
 }
