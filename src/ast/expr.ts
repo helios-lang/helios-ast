@@ -1,15 +1,43 @@
 import {
   AstNode,
+  ident,
   IdentifierNode,
+  IdentifierWithSuffix,
   Literal,
-  Operator,
   MaybeTypedIdentifier,
-  TypeNodeOrNull,
+  Operator,
   PathNode,
+  TypeNodeOrNull,
 } from './common.ts';
 
 import { Declaration } from './decl.ts';
 import { AstVisitor } from './visitors/mod.ts';
+
+export type LabelledParameter = IdentifierWithSuffix<Expression>;
+
+export const labelledParam = (
+  identifier: string,
+  expr: Expression,
+): LabelledParameter => ({ identifier: ident(identifier), suffix: expr });
+
+export const literal = (
+  value: boolean | number | string,
+  floatingPoint = false,
+): LiteralExpression => {
+  switch (typeof value) {
+    case 'boolean':
+      return LiteralExpression.Boolean(value);
+    case 'number':
+      if (floatingPoint || value.toString().includes('.')) {
+        return LiteralExpression.Float(value);
+      } else {
+        return LiteralExpression.Integer(value);
+      }
+    case 'string':
+    default:
+      return LiteralExpression.String(String(value));
+  }
+};
 
 export abstract class Expression extends AstNode {}
 
@@ -79,6 +107,19 @@ export class CallExpression extends Expression {
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
     return visitor.visitCallExpression(this);
+  }
+}
+
+export class ConstructorExpression extends Expression {
+  constructor(
+    readonly identifier: IdentifierNode | PathNode,
+    readonly arguments_: ReadonlyArray<LabelledParameter>,
+  ) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitConstructorExpression(this);
   }
 }
 

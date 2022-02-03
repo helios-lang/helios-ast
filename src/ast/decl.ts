@@ -1,9 +1,9 @@
 import {
+  AlwaysTypedIdentifier,
   AstNode,
   IdentifierNode,
   MaybeTypedIdentifier,
   PathNode,
-  TypeNodeChild,
   TypeNodeOrNull,
 } from './common.ts';
 
@@ -13,7 +13,7 @@ import { AstVisitor } from './visitors/mod.ts';
 export abstract class Declaration extends AstNode {}
 
 export class ImportDeclaration extends Declaration {
-  constructor(readonly path: PathNode) {
+  constructor(readonly path: PathNode, readonly external: boolean = false) {
     super();
   }
 
@@ -23,7 +23,7 @@ export class ImportDeclaration extends Declaration {
 }
 
 export class ImportDeclarationGroup extends Declaration {
-  constructor(readonly imports: ImportDeclaration[]) {
+  constructor(readonly imports: ReadonlyArray<ImportDeclaration>) {
     super();
   }
 
@@ -49,7 +49,7 @@ export class BindingDeclaration extends Declaration {
 export class FunctionDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly parameters: MaybeTypedIdentifier[],
+    readonly parameters: ReadonlyArray<MaybeTypedIdentifier>,
     readonly returnType: TypeNodeOrNull,
     readonly body: Expression,
   ) {
@@ -61,15 +61,41 @@ export class FunctionDeclaration extends Declaration {
   }
 }
 
-export class TypeDeclaration extends Declaration {
+export class ConstructorDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly body: TypeNodeChild,
+    readonly parameters: ReadonlyArray<AlwaysTypedIdentifier>,
   ) {
     super();
   }
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitTypeDeclaration(this);
+    return visitor.visitConstructorDeclaration(this);
+  }
+}
+
+export class SumTypeDeclaration extends Declaration {
+  constructor(
+    readonly identifier: IdentifierNode,
+    readonly fields: ReadonlyArray<AlwaysTypedIdentifier>,
+  ) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitSumTypeDeclaration(this);
+  }
+}
+
+export class ProductTypeDeclaration extends Declaration {
+  constructor(
+    readonly identifier: IdentifierNode,
+    readonly constructors: ReadonlyArray<ConstructorDeclaration>,
+  ) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitProductTypeDeclaration(this);
   }
 }

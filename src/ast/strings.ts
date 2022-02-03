@@ -1,6 +1,9 @@
+export const FILE_EXTENSION = 'hl';
+
 export const keyword = {
-  function: 'func',
-  immutableBinding: 'let',
+  function: 'define',
+  immutableBinding: 'final',
+  mutableBinding: 'local',
   import: 'import',
   lambda: '\\',
   type: 'type',
@@ -8,20 +11,28 @@ export const keyword = {
 };
 
 export const symbol = {
+  anonymousConstructorInvokeBegin: '(',
+  anonymousConstructorInvokeEnd: ')',
+  anonymousConstructorSeparator: ',',
+  anonymousConstructorTag: '@',
   bindingOperator: '=',
   commentBegin: '#',
+  constructorDeclarationBegin: '|',
+  constructorInvokeBegin: '(',
+  constructorInvokeEnd: ')',
+  constructorParameterSeparator: ',',
   docCommentBegin: '##',
-  docCommentEnd: '\n',
   functionBegin: '=',
   functionInvokeBegin: '(',
   functionInvokeEnd: ')',
   functionParameterSeparator: ',',
   functionReturn: '->',
+  labelledParameterAnnotation: ':',
   lambdaBegin: '->',
   listBegin: '[',
   listEnd: ']',
   listSeparator: ',',
-  pathSeparator: '::',
+  pathSeparator: '.',
   recordBegin: '@(',
   recordEnd: ')',
   recordPathSeparator: '.',

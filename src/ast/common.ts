@@ -1,7 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { Declaration } from './decl.ts';
-import { LiteralExpression } from './mod.ts';
 import { AstVisitor } from './visitors/mod.ts';
 
 type Identifier = string & { __identifierBrand: any };
@@ -42,7 +41,7 @@ export function typedIdent(
   identifier: string,
   child: TypeNodeChild,
 ): AlwaysTypedIdentifier {
-  return { identifier: ident(identifier), identifierType: type(child) };
+  return { identifier: ident(identifier), suffix: type(child) };
 }
 
 export function optTypedIdent(
@@ -51,31 +50,22 @@ export function optTypedIdent(
 ): MaybeTypedIdentifier {
   return {
     identifier: ident(identifier),
-    identifierType: child ? type(child) : null,
+    suffix: child ? type(child) : null,
   };
 }
 
-export const literal = (
-  value: boolean | number | string,
-  floatingPoint = false,
-): LiteralExpression => {
-  switch (typeof value) {
-    case 'boolean':
-      return LiteralExpression.Boolean(value);
-    case 'number':
-      if (floatingPoint || value.toString().includes('.')) {
-        return LiteralExpression.Float(value);
-      } else {
-        return LiteralExpression.Integer(value);
-      }
-    case 'string':
-    default:
-      return LiteralExpression.String(String(value));
-  }
-};
-
 export abstract class AstNode {
   abstract accept<R, V extends AstVisitor<R>>(visitor: V): R;
+}
+
+export class BlankLineNode extends AstNode {
+  constructor() {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitBlankLineNode(this);
+  }
 }
 
 export class CommentNode extends AstNode {
@@ -88,6 +78,23 @@ export class CommentNode extends AstNode {
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
     return visitor.visitCommentNode(this);
+  }
+}
+
+export type TypeNodeOrNull = TypeNode | null;
+
+export type TypeNodeChild =
+  | IdentifierNode
+  | PathNode
+  | AnonymousConstructorNode;
+
+export class TypeNode extends AstNode {
+  constructor(readonly child: TypeNodeChild) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitTypeNode(this);
   }
 }
 
@@ -111,20 +118,6 @@ export class ModuleIdentifierNode extends AstNode {
   }
 }
 
-export type TypeNodeOrNull = TypeNode | null;
-
-export type TypeNodeChild = IdentifierNode | PathNode | AnonymousRecordNode;
-
-export class TypeNode extends AstNode {
-  constructor(readonly child: TypeNodeChild) {
-    super();
-  }
-
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitTypeNode(this);
-  }
-}
-
 export class PathNode extends AstNode {
   constructor(readonly components: ReadonlyArray<IdentifierNode>) {
     super();
@@ -135,19 +128,19 @@ export class PathNode extends AstNode {
   }
 }
 
-export class AnonymousRecordNode extends AstNode {
+export class AnonymousConstructorNode extends AstNode {
   constructor(readonly fields: ReadonlyArray<AlwaysTypedIdentifier>) {
     super();
   }
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitAnonymousRecordNode(this);
+    return visitor.visitAnonymousConstructorNode(this);
   }
 }
 
-type IdentifierWithType<T> = { identifier: IdentifierNode; identifierType: T };
-export type AlwaysTypedIdentifier = IdentifierWithType<TypeNode>;
-export type MaybeTypedIdentifier = IdentifierWithType<TypeNodeOrNull>;
+export type IdentifierWithSuffix<T> = { identifier: IdentifierNode; suffix: T };
+export type AlwaysTypedIdentifier = IdentifierWithSuffix<TypeNode>;
+export type MaybeTypedIdentifier = IdentifierWithSuffix<TypeNodeOrNull>;
 
 export type Program = TopLevelNode[];
 export type TopLevelNode = CommentNode | Declaration;

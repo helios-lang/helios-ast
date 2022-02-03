@@ -1,19 +1,23 @@
 import * as sigils from '../sigils.ts';
 import * as astCommon from '../common.ts';
 import * as visitorCommon from './common.ts';
+import { FILE_EXTENSION } from '../strings.ts';
 
 import {
   BindingDeclaration,
+  ConstructorDeclaration,
   FunctionDeclaration,
   ImportDeclaration,
   ImportDeclarationGroup,
-  TypeDeclaration,
+  ProductTypeDeclaration,
+  SumTypeDeclaration,
 } from '../decl.ts';
 
 import {
   BinaryExpression,
   BlockExpression,
   CallExpression,
+  ConstructorExpression,
   DotExpression,
   InterpolatedStringExpression,
   LambdaExpression,
@@ -44,22 +48,24 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     parameters: ReadonlyArray<astCommon.MaybeTypedIdentifier>,
     separator = this.symbols.functionParameterSeparator,
   ): StringifyResult {
-    return parameters.flatMap(
-      ({ identifier, identifierType }, index, array) => {
-        const stringified = identifier.accept<StringifyResult, this>(this);
+    return parameters.flatMap(({ identifier, suffix }, index, array) => {
+      const stringified = identifier.accept<StringifyResult, this>(this);
 
-        if (identifierType) {
-          stringified.push(
-            this.symbols.typeAnnotation,
-            sigils.SP,
-            ...identifierType.accept<StringifyResult, this>(this),
-          );
-        }
+      if (suffix) {
+        stringified.push(
+          this.symbols.typeAnnotation,
+          sigils.SP,
+          ...suffix.accept<StringifyResult, this>(this),
+        );
+      }
 
-        if (index === array.length - 1) return stringified;
-        return stringified.concat(separator, sigils.SP);
-      },
-    );
+      if (index === array.length - 1) return stringified;
+      return stringified.concat(separator, sigils.SP);
+    });
+  }
+
+  visitBlankLineNode(_: astCommon.BlankLineNode): StringifyResult {
+    return [sigils.SKIP_NL];
   }
 
   visitCommentNode(node: astCommon.CommentNode): StringifyResult {
@@ -99,36 +105,18 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     });
   }
 
-  visitAnonymousRecordNode(
-    node: astCommon.AnonymousRecordNode,
+  visitAnonymousConstructorNode(
+    node: astCommon.AnonymousConstructorNode,
   ): StringifyResult {
-    // TODO: Add support for preferTrailingSeparators
-    const multiline = Boolean(node.fields && node.fields?.length >= 4);
-    const body: StringifyResult = [];
-
-    if (node.fields && node.fields.length > 0) {
-      body.push(
-        multiline && sigils.BEGIN,
-        ...node.fields.flatMap(
-          ({ identifier, identifierType }, index, array) => {
-            const stringified: StringifyResult = [
-              ...identifier.accept<StringifyResult, this>(this),
-              this.symbols.typeAnnotation,
-              sigils.SP,
-              ...identifierType.accept<StringifyResult, this>(this),
-            ];
-            if (index === array.length - 1) return stringified;
-            return stringified.concat(
-              this.symbols.recordSeparator,
-              multiline ? sigils.CONT : sigils.SP,
-            );
-          },
-        ),
-        multiline && sigils.END,
-      );
-    }
-
-    return [this.symbols.recordBegin, ...body, this.symbols.recordEnd];
+    return [
+      this.symbols.anonymousConstructorTag,
+      this.symbols.anonymousConstructorInvokeBegin,
+      ...this.toParameterList(
+        node.fields,
+        this.symbols.anonymousConstructorSeparator,
+      ),
+      this.symbols.anonymousConstructorInvokeEnd,
+    ];
   }
 
   visitImportDeclaration(decl: ImportDeclaration): StringifyResult {
@@ -137,7 +125,9 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     if (this.options.stringImports) {
       importContents.push(
         this.symbols.stringBegin,
+        decl.external && 'lib:',
         ...this.toSeparatedList(decl.path.components, '/', false),
+        Boolean(this.options.addFileExtensionToImports) && `.${FILE_EXTENSION}`,
         this.symbols.stringEnd,
       );
     } else {
@@ -174,6 +164,13 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.keywords.immutableBinding,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
+      ...(decl.identifierType
+        ? [
+            this.symbols.typeAnnotation,
+            sigils.SP,
+            ...decl.identifierType.accept<StringifyResult, this>(this),
+          ]
+        : []),
       sigils.SP,
       this.symbols.bindingOperator,
       sigils.SP,
@@ -199,27 +196,61 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     ];
   }
 
-  visitTypeDeclaration(decl: TypeDeclaration): StringifyResult {
+  visitConstructorDeclaration(decl: ConstructorDeclaration): StringifyResult {
+    return [
+      ...decl.identifier.accept<StringifyResult, this>(this),
+      this.symbols.constructorInvokeBegin,
+      ...this.toParameterList(
+        decl.parameters,
+        this.symbols.constructorParameterSeparator,
+      ),
+      this.symbols.constructorInvokeEnd,
+    ];
+  }
+
+  visitSumTypeDeclaration(decl: SumTypeDeclaration): StringifyResult {
     return [
       this.keywords.type,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
       sigils.SP,
       this.symbols.typeBegin,
+      sigils.BEGIN,
+      this.symbols.constructorDeclarationBegin,
       sigils.SP,
-      ...decl.body.accept<StringifyResult, this>(this),
-      sigils.NL,
+      ...new ConstructorDeclaration(decl.identifier, decl.fields).accept<
+        StringifyResult,
+        this
+      >(this),
+      sigils.END,
     ];
   }
 
+  visitProductTypeDeclaration(decl: ProductTypeDeclaration): StringifyResult {
+    return [];
+  }
+
   visitLiteralExpression(expr: LiteralExpression): StringifyResult {
-    return [
-      `${
-        expr.literal.kind === 'float'
-          ? expr.literal.value.toFixed(1)
-          : expr.literal.value
-      }`,
-    ];
+    switch (expr.literal.kind) {
+      case 'boolean':
+        return [expr.literal.value ? 'True' : 'False'];
+      case 'integer':
+        return [String(expr.literal.value)];
+      case 'float': {
+        const stringValue = expr.literal.value.toString();
+        return [
+          stringValue.includes('.')
+            ? stringValue
+            : expr.literal.value.toFixed(1),
+        ];
+      }
+      default:
+        return [
+          this.symbols.stringBegin,
+          String(expr.literal.value),
+          this.symbols.stringEnd,
+        ];
+    }
   }
 
   visitInterpolatedStringExpression(
@@ -290,6 +321,27 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         expr.arguments_,
         this.symbols.functionParameterSeparator,
       ),
+      this.symbols.functionInvokeEnd,
+    ];
+  }
+
+  visitConstructorExpression(expr: ConstructorExpression): StringifyResult {
+    return [
+      ...expr.identifier.accept<StringifyResult, this>(this),
+      this.symbols.functionInvokeBegin,
+      ...expr.arguments_.flatMap((argument, index, array) => {
+        const stringified = [
+          ...argument.identifier.accept<StringifyResult, this>(this),
+          this.symbols.labelledParameterAnnotation,
+          sigils.SP,
+          ...argument.suffix.accept<StringifyResult, this>(this),
+        ];
+        if (index === array.length - 1) return stringified;
+        return stringified.concat(
+          this.symbols.functionParameterSeparator,
+          sigils.SP,
+        );
+      }),
       this.symbols.functionInvokeEnd,
     ];
   }
