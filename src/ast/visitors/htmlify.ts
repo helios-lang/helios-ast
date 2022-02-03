@@ -134,7 +134,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         s(
           [HtmlClass.CONSTRUCTOR],
           t(identifier.name),
-          `${identifier.name}${this.symbols.typeAnnotation} (inferred)`,
+          `${identifier.name}${this.symbols.typeAnnotation} ???`,
         ),
       ];
 
@@ -338,7 +338,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [
       this.keywordElement(this.keywords.type),
       g.SP,
-      s([HtmlClass.IDENTIFIER], t(decl.identifier.name)),
+      s([HtmlClass.TYPE], t(decl.identifier.name)),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.BEGIN,
@@ -353,7 +353,21 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitProductTypeDeclaration(decl: ProductTypeDeclaration): HtmlifyResult {
-    return [];
+    return [
+      this.keywordElement(this.keywords.type),
+      g.SP,
+      s([HtmlClass.TYPE], t(decl.identifier.name)),
+      g.SP,
+      this.symbolElement(this.symbols.typeBegin),
+      g.BEGIN,
+      ...decl.constructors.flatMap((constructor, index, array) => [
+        this.symbolElement(this.symbols.constructorDeclarationBegin),
+        g.SP,
+        ...constructor.accept<HtmlifyResult, this>(this),
+        index < array.length - 1 && g.CONT,
+      ]),
+      g.END,
+    ];
   }
 
   visitLiteralExpression(expr: LiteralExpression): HtmlifyResult {

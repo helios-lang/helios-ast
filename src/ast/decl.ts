@@ -78,6 +78,7 @@ export class SumTypeDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
     readonly fields: ReadonlyArray<AlwaysTypedIdentifier>,
+    readonly generics?: ReadonlyArray<string>,
   ) {
     super();
   }
@@ -91,6 +92,7 @@ export class ProductTypeDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
     readonly constructors: ReadonlyArray<ConstructorDeclaration>,
+    readonly generics?: ReadonlyArray<string>,
   ) {
     super();
   }

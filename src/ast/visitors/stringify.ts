@@ -227,7 +227,21 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitProductTypeDeclaration(decl: ProductTypeDeclaration): StringifyResult {
-    return [];
+    return [
+      this.keywords.type,
+      sigils.SP,
+      ...decl.identifier.accept<StringifyResult, this>(this),
+      sigils.SP,
+      this.symbols.typeBegin,
+      sigils.BEGIN,
+      ...decl.constructors.flatMap((constructor, index, array) => [
+        this.symbols.constructorDeclarationBegin,
+        sigils.SP,
+        ...constructor.accept<StringifyResult, this>(this),
+        index < array.length - 1 && sigils.CONT,
+      ]),
+      sigils.END,
+    ];
   }
 
   visitLiteralExpression(expr: LiteralExpression): StringifyResult {

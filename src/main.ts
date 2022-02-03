@@ -23,7 +23,19 @@ const imports: ast.TopLevelNode[] = [
   ]),
 ];
 
-const pointRecord: ast.TopLevelNode[] = [
+const resultType: ast.TopLevelNode[] = [
+  ast.docComment('A type with two constructors.'),
+  new ast.ProductTypeDeclaration(ast.ident('Result'), [
+    new ast.ConstructorDeclaration(ast.ident('Okay'), [
+      ast.typedIdent('value', ast.ident('t')),
+    ]),
+    new ast.ConstructorDeclaration(ast.ident('Error'), [
+      ast.typedIdent('reason', ast.ident('e')),
+    ]),
+  ]),
+];
+
+const pointType: ast.TopLevelNode[] = [
   ast.docComment('A representation of a point in two-dimensional space.'),
   new ast.SumTypeDeclaration(ast.ident('Point'), [
     ast.typedIdent('x', ast.ident('Float')),
@@ -166,16 +178,16 @@ const mainFunction: ast.TopLevelNode[] = [
         ast.ident('p'),
         ast.inferredType(),
         new ast.ConstructorExpression(ast.ident('Point'), [
-          ast.labelledParam('x', ast.LiteralExpression.Float(1.0)),
-          ast.labelledParam('y', ast.LiteralExpression.Float(2.0)),
+          ast.labelledParam('x', ast.literal(1.0, true)),
+          ast.labelledParam('y', ast.literal(2.0, true)),
         ]),
       ),
       new ast.BindingDeclaration(
         ast.ident('q'),
         ast.inferredType(),
         new ast.ConstructorExpression(ast.path('geo2d', 'math', 'Point'), [
-          ast.labelledParam('x', ast.LiteralExpression.Float(2.0)),
-          ast.labelledParam('y', ast.LiteralExpression.Float(4.0)),
+          ast.labelledParam('x', ast.literal(2.0, true)),
+          ast.labelledParam('y', ast.literal(4.0, true)),
         ]),
       ),
       new ast.BindingDeclaration(
@@ -198,7 +210,8 @@ const mainFunction: ast.TopLevelNode[] = [
 
 const program: ast.Program = new Array<ast.TopLevelNode>().concat(
   imports,
-  pointRecord,
+  resultType,
+  pointType,
   // aliasRecord,
   distanceBetweenFunction,
   coordSumFunction,
