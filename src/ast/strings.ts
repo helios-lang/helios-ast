@@ -2,8 +2,8 @@ export const FILE_EXTENSION = 'hl';
 
 export const keyword = {
   function: 'define',
-  immutableBinding: 'final',
-  mutableBinding: 'local',
+  immutableBinding: 'let',
+  // mutableBinding: 'local',
   import: 'import',
   lambda: '\\',
   type: 'type',
@@ -27,6 +27,9 @@ export const symbol = {
   functionInvokeEnd: ')',
   functionParameterSeparator: ',',
   functionReturn: '->',
+  genericsListBegin: '(',
+  genericsListEnd: ')',
+  genericsListSeparator: ',',
   labelledParameterAnnotation: ':',
   lambdaBegin: '->',
   listBegin: '[',

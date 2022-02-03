@@ -25,14 +25,18 @@ const imports: ast.TopLevelNode[] = [
 
 const resultType: ast.TopLevelNode[] = [
   ast.docComment('A type with two constructors.'),
-  new ast.ProductTypeDeclaration(ast.ident('Result'), [
-    new ast.ConstructorDeclaration(ast.ident('Okay'), [
-      ast.typedIdent('value', ast.ident('t')),
-    ]),
-    new ast.ConstructorDeclaration(ast.ident('Error'), [
-      ast.typedIdent('reason', ast.ident('e')),
-    ]),
-  ]),
+  new ast.ProductTypeDeclaration(
+    ast.ident('Result'),
+    [
+      new ast.ConstructorDeclaration(ast.ident('Okay'), [
+        ast.typedIdent('value', ast.ident('t')),
+      ]),
+      new ast.ConstructorDeclaration(ast.ident('Error'), [
+        ast.typedIdent('reason', ast.ident('e')),
+      ]),
+    ],
+    [ast.ident('t'), ast.ident('e')],
+  ),
 ];
 
 const pointType: ast.TopLevelNode[] = [
@@ -61,7 +65,7 @@ const distanceBetweenFunction: ast.TopLevelNode[] = [
     '```helios',
     '> let a = Point(x: 1.0, y: 2.0)',
     '> let b = Point(x: 2.0, y: 4.0)',
-    '> distance_from(a, b)',
+    '> distance_between(a, b)',
     '2.23606797749979',
     '```',
   ),
@@ -173,7 +177,7 @@ const mainFunction: ast.TopLevelNode[] = [
         ]),
       ]),
       new ast.BlankLineNode(),
-      ast.comment('Constructing two points.'),
+      ast.comment('Constructing two points'),
       new ast.BindingDeclaration(
         ast.ident('p'),
         ast.inferredType(),
@@ -204,6 +208,24 @@ const mainFunction: ast.TopLevelNode[] = [
           ast.ident('distance'),
         ]),
       ]),
+      new ast.BlankLineNode(),
+      ast.comment('Local imports'),
+      new ast.ImportDeclaration(ast.path('core', 'random'), true),
+      new ast.BindingDeclaration(
+        ast.ident('random'),
+        ast.inferredType(),
+        new ast.CallExpression(ast.path('random', 'random_integer_between'), [
+          ast.literal(0),
+          ast.literal(11),
+        ]),
+      ),
+      new ast.CallExpression(ast.path('io', 'println'), [
+        new ast.InterpolatedStringExpression([
+          'The number I chose was ',
+          ast.ident('random'),
+          '!',
+        ]),
+      ]),
     ]),
   ),
 ];
@@ -221,7 +243,7 @@ const program: ast.Program = new Array<ast.TopLevelNode>().concat(
 async function main() {
   const options: ast.AstVisitorOptions = {
     stringImports: true,
-    addFileExtensionToImports: true,
+    // importWithFileExtension: true,
     preferTrailingSeparators: true,
     symbols: {
       // pathSeparator: ".",

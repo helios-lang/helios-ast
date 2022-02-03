@@ -127,7 +127,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         this.symbols.stringBegin,
         decl.external && 'lib:',
         ...this.toSeparatedList(decl.path.components, '/', false),
-        Boolean(this.options.addFileExtensionToImports) && `.${FILE_EXTENSION}`,
+        Boolean(this.options.importWithFileExtension) && `.${FILE_EXTENSION}`,
         this.symbols.stringEnd,
       );
     } else {
@@ -231,6 +231,21 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.keywords.type,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
+      ...(decl.generics
+        ? [
+            this.symbols.genericsListBegin,
+            ...decl.generics.flatMap((identifier, index, array) => {
+              const stringified = identifier.name;
+              if (index === array.length - 1) return stringified;
+              return [
+                stringified,
+                this.symbols.genericsListSeparator,
+                sigils.SP,
+              ];
+            }),
+            this.symbols.genericsListEnd,
+          ]
+        : []),
       sigils.SP,
       this.symbols.typeBegin,
       sigils.BEGIN,

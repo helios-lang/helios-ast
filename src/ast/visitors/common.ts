@@ -26,7 +26,7 @@ import {
 } from '../expr.ts';
 
 export interface ConfigurableAstVisitorOptions {
-  addFileExtensionToImports?: boolean;
+  importWithFileExtension?: boolean;
   indentationCount?: number;
   preferTrailingSeparators?: boolean;
   stringImports?: boolean;

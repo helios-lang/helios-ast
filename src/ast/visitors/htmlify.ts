@@ -246,7 +246,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             ...this.toSeparatedList(decl.path.components, t('/'), false).filter(
               (element): element is HtmlElement => Boolean(element),
             ),
-            Boolean(this.options.addFileExtensionToImports) &&
+            Boolean(this.options.importWithFileExtension) &&
               t(`.${FILE_EXTENSION}`),
             t(this.symbols.stringEnd),
           ],
@@ -357,6 +357,21 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       this.keywordElement(this.keywords.type),
       g.SP,
       s([HtmlClass.TYPE], t(decl.identifier.name)),
+      ...(decl.generics
+        ? [
+            this.symbolElement(this.symbols.genericsListBegin),
+            ...decl.generics.flatMap((identifier, index, array) => {
+              const htmlified = s([HtmlClass.TYPE], t(identifier.name));
+              if (index === array.length - 1) return htmlified;
+              return [
+                htmlified,
+                this.symbolElement(this.symbols.genericsListSeparator),
+                g.SP,
+              ];
+            }),
+            this.symbolElement(this.symbols.genericsListEnd),
+          ]
+        : []),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.BEGIN,
