@@ -1,6 +1,7 @@
 import {
   AlwaysTypedIdentifier,
   AstNode,
+  GenericsListNode,
   IdentifierNode,
   MaybeTypedIdentifier,
   PathNode,
@@ -78,7 +79,7 @@ export class SumTypeDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
     readonly fields: ReadonlyArray<AlwaysTypedIdentifier>,
-    readonly generics?: ReadonlyArray<IdentifierNode>,
+    readonly generics?: GenericsListNode,
   ) {
     super();
   }
@@ -92,12 +93,26 @@ export class ProductTypeDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
     readonly constructors: ReadonlyArray<ConstructorDeclaration>,
-    readonly generics?: ReadonlyArray<IdentifierNode>,
+    readonly generics?: GenericsListNode,
   ) {
     super();
   }
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
     return visitor.visitProductTypeDeclaration(this);
+  }
+}
+
+export class TypeAliasDeclaration extends Declaration {
+  constructor(
+    readonly identifier: IdentifierNode,
+    readonly type: IdentifierNode | PathNode,
+    readonly generics?: GenericsListNode,
+  ) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitTypeAliasDeclaration(this);
   }
 }

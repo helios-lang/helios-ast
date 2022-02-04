@@ -4,7 +4,7 @@ import { Declaration } from './decl.ts';
 import { AstVisitor } from './visitors/mod.ts';
 
 type Identifier = string & { __identifierBrand: any };
-export type Operator = '+' | '-' | '*' | '/';
+export type Operator = string;
 
 export type Literal =
   | { kind: 'boolean'; value: boolean }
@@ -41,6 +41,16 @@ export class CommentNode extends AstNode {
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
     return visitor.visitCommentNode(this);
+  }
+}
+
+export class PlaceHolderNode extends AstNode {
+  constructor() {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitPlaceholderNode(this);
   }
 }
 
@@ -101,6 +111,16 @@ export class AnonymousConstructorNode extends AstNode {
   }
 }
 
+export class GenericsListNode extends AstNode {
+  constructor(readonly identifiers: ReadonlyArray<IdentifierNode>) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitGenericsListNode(this);
+  }
+}
+
 export type IdentifierWithSuffix<T> = { identifier: IdentifierNode; suffix: T };
 export type AlwaysTypedIdentifier = IdentifierWithSuffix<TypeNode>;
 export type MaybeTypedIdentifier = IdentifierWithSuffix<TypeNodeOrNull>;
@@ -112,6 +132,8 @@ export function capitalizeModuleName(string: string): string {
   if (string.length == 2) return string.toUpperCase();
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
+
+export const placeholder = () => new PlaceHolderNode();
 
 export const module = (...nodes: (TopLevelNode | TopLevelNode[])[]): Module =>
   nodes.flat();

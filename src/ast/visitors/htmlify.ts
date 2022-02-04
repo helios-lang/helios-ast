@@ -13,6 +13,7 @@ import {
   ImportDeclarationGroup,
   ProductTypeDeclaration,
   SumTypeDeclaration,
+  TypeAliasDeclaration,
 } from '../decl.ts';
 
 import {
@@ -195,6 +196,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     });
   }
 
+  visitPlaceholderNode(_: astCommon.PlaceHolderNode): HtmlifyResult {
+    return [this.keywordElement(this.symbols.placeholder)];
+  }
+
   visitIdentifierNode(node: astCommon.IdentifierNode): HtmlifyResult {
     return [s([HtmlClass.IDENTIFIER], t(node.name))];
   }
@@ -252,6 +257,22 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     ];
   }
 
+  visitGenericsListNode(node: astCommon.GenericsListNode): HtmlifyResult {
+    return [
+      this.symbolElement(this.symbols.genericsListBegin),
+      ...node.identifiers.flatMap((identifier, index, array) => {
+        const htmlified = s([HtmlClass.TYPE], t(identifier.name));
+        if (index === array.length - 1) return htmlified;
+        return [
+          htmlified,
+          this.symbolElement(this.symbols.genericsListSeparator),
+          g.SP,
+        ];
+      }),
+      this.symbolElement(this.symbols.genericsListEnd),
+    ];
+  }
+
   visitImportDeclaration(decl: ImportDeclaration): HtmlifyResult {
     const importContents: HtmlifyResult = [
       this.keywordElement(this.keywords.import),
@@ -267,7 +288,6 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         },
         '',
       );
-      console.log({ expectedFileName });
       if (this.registry.includes(expectedFileName)) {
         link = './' + expectedFileName + `.${FILE_EXTENSION}.html`;
       } else {
@@ -281,11 +301,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             t(this.symbols.stringBegin),
             a(link, [
               decl.external && t('lib:'),
-              ...this.toSeparatedList(
-                decl.path.components,
-                t('/'),
-                false,
-              ).filter((element): element is HtmlElement => Boolean(element)),
+              ...decl.path.components.flatMap((component, index, array) => {
+                const htmlified = t(component.name);
+                if (index === array.length - 1) return htmlified;
+                return [htmlified, t('/')];
+              }),
               Boolean(this.options.importWithFileExtension) &&
                 t(`.${FILE_EXTENSION}`),
             ]),
@@ -380,6 +400,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       this.keywordElement(this.keywords.type),
       g.SP,
       s([HtmlClass.TYPE], t(decl.identifier.name)),
+      ...(decl.generics ? decl.generics.accept<HtmlifyResult, this>(this) : []),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.BEGIN,
@@ -398,21 +419,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       this.keywordElement(this.keywords.type),
       g.SP,
       s([HtmlClass.TYPE], t(decl.identifier.name)),
-      ...(decl.generics
-        ? [
-            this.symbolElement(this.symbols.genericsListBegin),
-            ...decl.generics.flatMap((identifier, index, array) => {
-              const htmlified = s([HtmlClass.TYPE], t(identifier.name));
-              if (index === array.length - 1) return htmlified;
-              return [
-                htmlified,
-                this.symbolElement(this.symbols.genericsListSeparator),
-                g.SP,
-              ];
-            }),
-            this.symbolElement(this.symbols.genericsListEnd),
-          ]
-        : []),
+      ...(decl.generics ? decl.generics.accept<HtmlifyResult, this>(this) : []),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.BEGIN,
@@ -423,6 +430,19 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         index < array.length - 1 && g.CONT,
       ]),
       g.END,
+    ];
+  }
+
+  visitTypeAliasDeclaration(decl: TypeAliasDeclaration): HtmlifyResult {
+    return [
+      this.keywordElement(this.keywords.typeAlias),
+      g.SP,
+      s([HtmlClass.TYPE], t(decl.identifier.name)),
+      ...(decl.generics ? decl.generics.accept<HtmlifyResult, this>(this) : []),
+      g.SP,
+      this.symbolElement(this.symbols.typeBegin),
+      g.SP,
+      ...new astCommon.PlaceHolderNode().accept<HtmlifyResult, this>(this),
     ];
   }
 
@@ -776,7 +796,7 @@ function htmlElementsToStrings(
             visitHtmlElement(element.children);
           }
         }
-        processed.push(`<a/>`);
+        processed.push(`</a>`);
         break;
       }
       case 'text': /* FALLTHROUGH */

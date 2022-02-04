@@ -36,6 +36,7 @@ export const symbol = {
   listEnd: ']',
   listSeparator: ',',
   pathSeparator: '.',
+  placeholder: '???',
   recordBegin: '@(',
   recordEnd: ')',
   recordPathSeparator: '.',

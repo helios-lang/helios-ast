@@ -2,6 +2,7 @@ import * as fs from 'https://deno.land/std@0.123.0/fs/mod.ts';
 
 import * as ast from './ast/mod.ts';
 import mainModule from './modules/main_hl.ts';
+import attendanceModule from './modules/attendance_hl.ts';
 import pointModule from './modules/point_hl.ts';
 
 async function main() {
@@ -14,11 +15,11 @@ async function main() {
     },
   };
 
-  const stringified = ast.stringify(mainModule, options);
+  const stringified = ast.stringify(attendanceModule, options);
   console.log(stringified, '\n');
 
   const htmlified = ast.htmlify(
-    { main: mainModule, point: pointModule },
+    { main: mainModule, attendance: attendanceModule, point: pointModule },
     options,
   );
 

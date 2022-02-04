@@ -11,6 +11,7 @@ import {
   ImportDeclarationGroup,
   ProductTypeDeclaration,
   SumTypeDeclaration,
+  TypeAliasDeclaration,
 } from '../decl.ts';
 
 import {
@@ -81,6 +82,10 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     });
   }
 
+  visitPlaceholderNode(_: astCommon.PlaceHolderNode): StringifyResult {
+    return [this.symbols.placeholder];
+  }
+
   visitIdentifierNode(node: astCommon.IdentifierNode): StringifyResult {
     return [node.name];
   }
@@ -116,6 +121,18 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         this.symbols.anonymousConstructorSeparator,
       ),
       this.symbols.anonymousConstructorInvokeEnd,
+    ];
+  }
+
+  visitGenericsListNode(node: astCommon.GenericsListNode): StringifyResult {
+    return [
+      this.symbols.genericsListBegin,
+      ...node.identifiers.flatMap((identifier, index, array) => {
+        const stringified = identifier.accept<StringifyResult, this>(this);
+        if (index === array.length - 1) return stringified;
+        return [...stringified, this.symbols.genericsListSeparator, sigils.SP];
+      }),
+      this.symbols.genericsListEnd,
     ];
   }
 
@@ -187,9 +204,14 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       ...this.toParameterList(decl.parameters),
       this.symbols.functionInvokeEnd,
       sigils.SP,
-      // ...(decl.returnType
-      //   ? [this.symbols.functionReturn, sigils.SP, decl.returnType, sigils.SP]
-      //   : []),
+      ...(decl.returnType
+        ? [
+            this.symbols.functionReturn,
+            sigils.SP,
+            ...decl.returnType.accept<StringifyResult, this>(this),
+            sigils.SP,
+          ]
+        : []),
       this.symbols.functionBegin,
       !(decl.body instanceof BlockExpression) && sigils.SP,
       ...decl.body.accept<StringifyResult, this>(this),
@@ -213,6 +235,9 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.keywords.type,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
+      ...(decl.generics
+        ? decl.generics.accept<StringifyResult, this>(this)
+        : []),
       sigils.SP,
       this.symbols.typeBegin,
       sigils.BEGIN,
@@ -232,19 +257,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
       ...(decl.generics
-        ? [
-            this.symbols.genericsListBegin,
-            ...decl.generics.flatMap((identifier, index, array) => {
-              const stringified = identifier.name;
-              if (index === array.length - 1) return stringified;
-              return [
-                stringified,
-                this.symbols.genericsListSeparator,
-                sigils.SP,
-              ];
-            }),
-            this.symbols.genericsListEnd,
-          ]
+        ? decl.generics.accept<StringifyResult, this>(this)
         : []),
       sigils.SP,
       this.symbols.typeBegin,
@@ -256,6 +269,21 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         index < array.length - 1 && sigils.CONT,
       ]),
       sigils.END,
+    ];
+  }
+
+  visitTypeAliasDeclaration(decl: TypeAliasDeclaration): StringifyResult {
+    return [
+      this.keywords.typeAlias,
+      sigils.SP,
+      ...decl.identifier.accept<StringifyResult, this>(this),
+      ...(decl.generics
+        ? decl.generics.accept<StringifyResult, this>(this)
+        : []),
+      sigils.SP,
+      this.symbols.typeBegin,
+      sigils.SP,
+      ...new astCommon.PlaceHolderNode().accept<StringifyResult, this>(this),
     ];
   }
 

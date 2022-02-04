@@ -9,6 +9,7 @@ import {
   ImportDeclarationGroup,
   ProductTypeDeclaration,
   SumTypeDeclaration,
+  TypeAliasDeclaration,
 } from '../decl.ts';
 
 import {
@@ -57,6 +58,7 @@ export abstract class AstVisitor<R> {
 
   abstract visitBlankLineNode(node: common.BlankLineNode): R;
   abstract visitCommentNode(node: common.CommentNode): R;
+  abstract visitPlaceholderNode(node: common.PlaceHolderNode): R;
   abstract visitPathNode(node: common.PathNode): R;
   abstract visitAnonymousConstructorNode(
     node: common.AnonymousConstructorNode,
@@ -64,6 +66,7 @@ export abstract class AstVisitor<R> {
   abstract visitIdentifierNode(node: common.IdentifierNode): R;
   abstract visitModuleNode(node: common.ModuleIdentifierNode): R;
   abstract visitTypeNode(node: common.TypeNode): R;
+  abstract visitGenericsListNode(node: common.GenericsListNode): R;
 
   // --- DECLARATIONS ---
 
@@ -74,6 +77,7 @@ export abstract class AstVisitor<R> {
   abstract visitConstructorDeclaration(decl: ConstructorDeclaration): R;
   abstract visitSumTypeDeclaration(decl: SumTypeDeclaration): R;
   abstract visitProductTypeDeclaration(decl: ProductTypeDeclaration): R;
+  abstract visitTypeAliasDeclaration(decl: TypeAliasDeclaration): R;
 
   // --- EXPRESSIONS ---
 

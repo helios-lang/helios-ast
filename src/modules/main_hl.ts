@@ -13,6 +13,7 @@ const imports: ast.TopLevelNode[] = [
   ]),
   ast.comment('Importing local modules'),
   new ast.ImportDeclarationGroup([
+    new ast.ImportDeclaration(ast.path('attendance')),
     new ast.ImportDeclaration(ast.path('point')),
   ]),
 ];
@@ -29,7 +30,7 @@ const resultType: ast.TopLevelNode[] = [
         ast.typedIdent('reason', ast.ident('e')),
       ]),
     ],
-    [ast.ident('t'), ast.ident('e')],
+    new ast.GenericsListNode([ast.ident('t'), ast.ident('e')]),
   ),
 ];
 

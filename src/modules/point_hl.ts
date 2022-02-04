@@ -82,10 +82,11 @@ const coordSumFunction: ast.TopLevelNode[] = [
         new ast.AnonymousConstructorNode([
           ast.typedIdent('x', ast.ident('Float')),
           ast.typedIdent('y', ast.ident('Float')),
+          ast.typedIdent('z', ast.ident('Float')),
         ]),
       ),
     ],
-    ast.inferredType(),
+    ast.type(ast.ident('Float')),
     new ast.BlockExpression([
       new ast.BindingDeclaration(
         ast.ident('sum'),
