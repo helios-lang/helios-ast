@@ -6,11 +6,11 @@ import pointModule from './modules/point_hl.ts';
 
 async function main() {
   const options: ast.AstVisitorOptions = {
-    // stringImports: true,
+    stringImports: true,
     // importWithFileExtension: true,
     preferTrailingSeparators: true,
     symbols: {
-      pathSeparator: '::',
+      // pathSeparator: '::',
     },
   };
 

@@ -45,6 +45,13 @@ export enum HtmlClass {
 
 type SigilHtmlElement = { tag: 'sigil'; text: string };
 type TextHtmlElement = { tag: 'text'; text: string };
+
+type LinkHtmlElement = {
+  tag: 'link';
+  link: string;
+  children?: HtmlElement[];
+};
+
 type SpanHtmlElement = {
   tag: 'span';
   classes: HtmlClass[];
@@ -52,11 +59,14 @@ type SpanHtmlElement = {
   tooltipText?: string;
 };
 
-type HtmlElement = SigilHtmlElement | TextHtmlElement | SpanHtmlElement;
+type HtmlElement =
+  | SigilHtmlElement
+  | TextHtmlElement
+  | LinkHtmlElement
+  | SpanHtmlElement;
+
 type MaybeHtmlElement = false | HtmlElement;
 export type HtmlifyResult = MaybeHtmlElement[];
-
-const t = (text: string): HtmlElement => ({ tag: 'text', text });
 
 const g = {
   SP: { tag: 'sigil', text: sigils.SP } as HtmlElement,
@@ -68,36 +78,48 @@ const g = {
   RESET: { tag: 'sigil', text: sigils.RESET } as HtmlElement,
 };
 
-type HtmlElementConstructor = (
-  classes: HtmlClass[],
-  children?: MaybeHtmlElement | MaybeHtmlElement[],
-  tooltipText?: string,
-) => HtmlElement;
+const t = (text: string): HtmlElement => ({ tag: 'text', text });
 
-const s: HtmlElementConstructor = (
-  classes,
-  children = undefined,
-  tooltipText = undefined,
+const processMaybeHtmlElements = (
+  elements: MaybeHtmlElement | MaybeHtmlElement[] | undefined,
 ) => {
-  let processedChildren: HtmlElement[] | undefined = undefined;
-
-  if (Array.isArray(children)) {
-    processedChildren = children.filter((child): child is HtmlElement =>
-      Boolean(child),
-    );
-  } else if (children) {
-    processedChildren = [children];
+  if (Array.isArray(elements)) {
+    return elements.filter((child): child is HtmlElement => Boolean(child));
+  } else if (elements) {
+    return [elements];
   }
+};
 
+const a = (
+  link: LinkHtmlElement['link'],
+  children: MaybeHtmlElement | MaybeHtmlElement[],
+): HtmlElement => ({
+  tag: 'link',
+  link,
+  children: processMaybeHtmlElements(children),
+});
+
+const s = (
+  classes: SpanHtmlElement['classes'],
+  children?: MaybeHtmlElement | MaybeHtmlElement[],
+  tooltipText?: SpanHtmlElement['tooltipText'],
+): HtmlElement => {
   return {
     tag: 'span',
     classes,
-    children: processedChildren,
+    children: processMaybeHtmlElements(children),
     tooltipText,
   };
 };
 
 export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
+  constructor(
+    readonly options: HtmlifyOptions,
+    readonly registry: HtmlifyFileRegistry,
+  ) {
+    super(options);
+  }
+
   private keywordElement(keyword: string): HtmlElement {
     return s([HtmlClass.KEYWORD], t(keyword));
   }
@@ -237,17 +259,36 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     ];
 
     if (this.options.stringImports) {
+      let link: string;
+      const expectedFileName = decl.path.components.reduce(
+        (acc, curr, index) => {
+          if (index === 0) return curr.name;
+          return `${acc}-${curr.name}`;
+        },
+        '',
+      );
+      console.log({ expectedFileName });
+      if (this.registry.includes(expectedFileName)) {
+        link = './' + expectedFileName + `.${FILE_EXTENSION}.html`;
+      } else {
+        link = '#';
+      }
+
       importContents.push(
         s(
           [HtmlClass.STRING],
           [
             t(this.symbols.stringBegin),
-            decl.external && t('lib:'),
-            ...this.toSeparatedList(decl.path.components, t('/'), false).filter(
-              (element): element is HtmlElement => Boolean(element),
-            ),
-            Boolean(this.options.importWithFileExtension) &&
-              t(`.${FILE_EXTENSION}`),
+            a(link, [
+              decl.external && t('lib:'),
+              ...this.toSeparatedList(
+                decl.path.components,
+                t('/'),
+                false,
+              ).filter((element): element is HtmlElement => Boolean(element)),
+              Boolean(this.options.importWithFileExtension) &&
+                t(`.${FILE_EXTENSION}`),
+            ]),
             t(this.symbols.stringEnd),
           ],
         ),
@@ -594,6 +635,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 // -----------------------------------------------------------------------------
 
 type HtmlifiedModuleDictionary<K extends string> = Record<K, string>;
+type HtmlifyFileRegistry = string[];
 
 // deno-lint-ignore no-empty-interface
 interface HtmlifyOptions extends visitorCommon.AstVisitorOptions {}
@@ -602,10 +644,11 @@ export function htmlify<K extends string = string>(
   modules: Record<K, astCommon.Module>,
   options: HtmlifyOptions = {},
 ): HtmlifiedModuleDictionary<K> {
+  const registry = Object.keys(modules);
   return Object.entries<astCommon.Module>(modules).reduce<
     HtmlifiedModuleDictionary<K>
   >((acc, curr) => {
-    acc[curr[0] as K] = htmlifyModule(curr[1], options);
+    acc[curr[0] as K] = htmlifyModule(curr[1], options, registry);
     return acc;
   }, {} as HtmlifiedModuleDictionary<K>);
 }
@@ -613,6 +656,7 @@ export function htmlify<K extends string = string>(
 function htmlifyModule(
   module: astCommon.Module,
   options: HtmlifyOptions,
+  registry: HtmlifyFileRegistry,
 ): string {
   let processedModule: astCommon.Module;
 
@@ -625,7 +669,7 @@ function htmlifyModule(
   }
 
   const table = processedModule
-    .flatMap((node) => [...processNode(node, options), sigils.NL])
+    .flatMap((node) => [...processNode(node, options, registry), sigils.NL])
     .join('')
     .trim()
     .split('\n')
@@ -653,8 +697,12 @@ function htmlifyModule(
   ].join('');
 }
 
-function processNode(node: astCommon.TopLevelNode, options: HtmlifyOptions) {
-  const visitor = new HtmlifyVisitor(options);
+function processNode(
+  node: astCommon.TopLevelNode,
+  options: HtmlifyOptions,
+  registry: HtmlifyFileRegistry,
+) {
+  const visitor = new HtmlifyVisitor(options, registry);
   const tokens = node
     .accept<HtmlifyResult, typeof visitor>(visitor)
     .filter((token): token is HtmlElement => Boolean(token));
@@ -670,27 +718,27 @@ function htmlElementsToStrings(
   const processed: string[] = [];
   const htmlElements = Array.isArray(elements) ? elements : [elements];
 
-  function visitHtmlElement(child: HtmlElement) {
-    switch (child.tag) {
+  function visitHtmlElement(element: HtmlElement) {
+    switch (element.tag) {
       case 'sigil': {
-        if (child.text === sigils.SP) {
+        if (element.text === sigils.SP) {
           processed.push('&nbsp;');
           return;
         }
 
-        if (child.text === sigils.SKIP_NL) return;
+        if (element.text === sigils.SKIP_NL) return;
         else processed.push(sigils.NL);
 
-        if (child.text === sigils.BEGIN) {
+        if (element.text === sigils.BEGIN) {
           currIndent += indentationCount;
           processed.push(indent(currIndent));
-        } else if (child.text === sigils.CONT) {
+        } else if (element.text === sigils.CONT) {
           processed.push(indent(currIndent));
-        } else if (child.text === sigils.END) {
+        } else if (element.text === sigils.END) {
           currIndent = Math.max(0, currIndent - indentationCount);
           // if (currIndent !== 0) processed.push(indent(currIndent));
           processed.push(indent(currIndent));
-        } else if (child.text === sigils.RESET) {
+        } else if (element.text === sigils.RESET) {
           currIndent = 0;
           processed.push(indent(currIndent));
         } else {
@@ -699,28 +747,41 @@ function htmlElementsToStrings(
 
         break;
       }
-      case 'span':
-        if (child.tooltipText) {
-          const classes = child.classes.join(' ');
-          const tooltipText = child.tooltipText;
+      case 'span': {
+        if (element.tooltipText) {
+          const classes = element.classes.join(' ');
+          const tooltipText = element.tooltipText;
           processed.push(
             `<span class="${classes} tooltip" data-tooltip-text="${tooltipText}">`,
           );
         } else {
-          processed.push(`<span class="${child.classes.join(' ')}">`);
+          processed.push(`<span class="${element.classes.join(' ')}">`);
         }
-        if (child.children) {
-          if (Array.isArray(child.children)) {
-            child.children.forEach(visitHtmlElement);
+        if (element.children) {
+          if (Array.isArray(element.children)) {
+            element.children.forEach(visitHtmlElement);
           } else {
-            visitHtmlElement(child.children);
+            visitHtmlElement(element.children);
           }
         }
         processed.push(`</span>`);
         break;
+      }
+      case 'link': {
+        processed.push(`<a href="${element.link}">`);
+        if (element.children) {
+          if (Array.isArray(element.children)) {
+            element.children.forEach(visitHtmlElement);
+          } else {
+            visitHtmlElement(element.children);
+          }
+        }
+        processed.push(`<a/>`);
+        break;
+      }
       case 'text': /* FALLTHROUGH */
       default:
-        processed.push(escapeHtml(child.text).replaceAll(' ', '&nbsp;'));
+        processed.push(escapeHtml(element.text).replaceAll(' ', '&nbsp;'));
         break;
     }
   }
