@@ -3,8 +3,8 @@ import * as ast from '../ast/mod.ts';
 const imports: ast.TopLevelNode[] = [
   ast.comment('Importing modules from the standard library'),
   new ast.ImportDeclarationGroup([
-    new ast.ImportDeclaration(ast.path('core', 'list'), true),
-    new ast.ImportDeclaration(ast.path('core', 'math'), true),
+    new ast.ImportDeclaration(ast.path('core', 'list'), { external: true }),
+    new ast.ImportDeclaration(ast.path('core', 'math'), { external: true }),
   ]),
 ];
 

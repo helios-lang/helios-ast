@@ -300,7 +300,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
           [
             t(this.symbols.stringBegin),
             a(link, [
-              decl.external && t('lib:'),
+              Boolean(decl.external) && t('lib:'),
               ...decl.path.components.flatMap((component, index, array) => {
                 const htmlified = t(component.name);
                 if (index === array.length - 1) return htmlified;
@@ -328,6 +328,51 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
           ];
           if (index === array.length - 1) return htmlified;
           return htmlified.concat(t(this.symbols.pathSeparator));
+        }),
+      );
+    }
+
+    if (decl.rename) {
+      importContents.push(
+        g.SP,
+        this.keywordElement(this.keywords.importRename),
+        g.SP,
+        s([HtmlClass.MODULE], t(decl.rename)),
+      );
+    }
+
+    if (decl.exposedIdentifiers) {
+      importContents.push(
+        g.SP,
+        this.keywordElement(this.keywords.importExposing),
+        g.SP,
+        ...decl.exposedIdentifiers.flatMap((exposed, index, array) => {
+          const firstLetter = exposed.identifier.charAt(0);
+          const startsWithCapitalLetter =
+            firstLetter !== firstLetter.toLowerCase();
+
+          const renameHtmlClass = startsWithCapitalLetter
+            ? HtmlClass.CONSTRUCTOR
+            : HtmlClass.FUNCTION;
+
+          const stringified: HtmlifyResult = [
+            s([renameHtmlClass], t(exposed.identifier)),
+          ];
+
+          if (exposed.rename) {
+            stringified.push(
+              g.SP,
+              this.keywordElement(this.keywords.importRename),
+              g.SP,
+              s([renameHtmlClass], t(exposed.rename)),
+            );
+          }
+
+          if (index === array.length - 1) return stringified;
+          return stringified.concat(
+            this.symbolElement(this.symbols.importExposedIdentifiersSeparator),
+            g.SP,
+          );
         }),
       );
     }

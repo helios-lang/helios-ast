@@ -6,8 +6,10 @@ export const keyword = {
   // mutableBinding: 'local',
   import: 'import',
   lambda: '\\',
-  type: 'type',
-  typeAlias: 'type alias',
+  type: 'data',
+  typeAlias: 'type',
+  importRename: 'as',
+  importExposing: 'exposing',
 };
 
 export const symbol = {
@@ -50,4 +52,5 @@ export const symbol = {
   tupleSeparator: ',',
   typeAnnotation: ':',
   typeBegin: '=',
+  importExposedIdentifiersSeparator: ',',
 };

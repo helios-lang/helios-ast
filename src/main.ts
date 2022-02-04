@@ -15,7 +15,7 @@ async function main() {
     },
   };
 
-  const stringified = ast.stringify(attendanceModule, options);
+  const stringified = ast.stringify(mainModule, options);
   console.log(stringified, '\n');
 
   const htmlified = ast.htmlify(

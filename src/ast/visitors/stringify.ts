@@ -142,7 +142,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     if (this.options.stringImports) {
       importContents.push(
         this.symbols.stringBegin,
-        decl.external && 'lib:',
+        Boolean(decl.external) && 'lib:',
         ...this.toSeparatedList(decl.path.components, '/', false),
         Boolean(this.options.importWithFileExtension) && `.${FILE_EXTENSION}`,
         this.symbols.stringEnd,
@@ -163,6 +163,41 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
           if (index === array.length - 1) return stringified;
           return stringified.concat(this.symbols.pathSeparator);
+        }),
+      );
+    }
+
+    if (decl.rename) {
+      importContents.push(
+        sigils.SP,
+        this.keywords.importRename,
+        sigils.SP,
+        decl.rename,
+      );
+    }
+
+    if (decl.exposedIdentifiers) {
+      importContents.push(
+        sigils.SP,
+        this.keywords.importExposing,
+        sigils.SP,
+        ...decl.exposedIdentifiers.flatMap((exposed, index, array) => {
+          const stringified: StringifyResult = [exposed.identifier];
+
+          if (exposed.rename) {
+            stringified.push(
+              sigils.SP,
+              this.keywords.importRename,
+              sigils.SP,
+              exposed.rename,
+            );
+          }
+
+          if (index === array.length - 1) return stringified;
+          return stringified.concat(
+            this.symbols.importExposedIdentifiersSeparator,
+            sigils.SP,
+          );
         }),
       );
     }

@@ -3,7 +3,8 @@ import * as ast from '../ast/mod.ts';
 export default ast.module(
   [
     new ast.ImportDeclarationGroup([
-      new ast.ImportDeclaration(ast.path('core', 'map'), true),
+      new ast.ImportDeclaration(ast.path('core', 'map'), { external: true }),
+      new ast.ImportDeclaration(ast.path('core', 'option'), { external: true }),
     ]),
   ],
   [

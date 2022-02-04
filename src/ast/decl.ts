@@ -13,9 +13,32 @@ import { AstVisitor } from './visitors/mod.ts';
 
 export abstract class Declaration extends AstNode {}
 
+type ImportDeclarationExposedIdentifiers = {
+  identifier: string;
+  rename?: string;
+};
+
+type ImportDeclarationOptions = {
+  external?: boolean;
+  rename?: string | undefined;
+  exposedIdentifiers?: ImportDeclarationExposedIdentifiers[];
+};
+
 export class ImportDeclaration extends Declaration {
-  constructor(readonly path: PathNode, readonly external: boolean = false) {
+  readonly path: PathNode;
+  readonly external: ImportDeclarationOptions['external'];
+  readonly rename: ImportDeclarationOptions['rename'];
+  readonly exposedIdentifiers: ImportDeclarationOptions['exposedIdentifiers'];
+
+  constructor(
+    path: PathNode,
+    { external, rename, exposedIdentifiers }: ImportDeclarationOptions = {},
+  ) {
     super();
+    this.path = path;
+    this.external = external;
+    this.rename = rename;
+    this.exposedIdentifiers = exposedIdentifiers;
   }
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
