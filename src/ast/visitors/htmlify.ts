@@ -593,21 +593,38 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
 // -----------------------------------------------------------------------------
 
+type HtmlifiedModuleDictionary<K extends string> = Record<K, string>;
+
 // deno-lint-ignore no-empty-interface
 interface HtmlifyOptions extends visitorCommon.AstVisitorOptions {}
 
-export function htmlify(
-  program: astCommon.Program,
+export function htmlify<K extends string = string>(
+  modules: Record<K, astCommon.Module>,
   options: HtmlifyOptions = {},
+): HtmlifiedModuleDictionary<K> {
+  return Object.entries<astCommon.Module>(modules).reduce<
+    HtmlifiedModuleDictionary<K>
+  >((acc, curr) => {
+    acc[curr[0] as K] = htmlifyModule(curr[1], options);
+    return acc;
+  }, {} as HtmlifiedModuleDictionary<K>);
+}
+
+function htmlifyModule(
+  module: astCommon.Module,
+  options: HtmlifyOptions,
 ): string {
-  let _program = program;
+  let processedModule: astCommon.Module;
+
   if (options.stripComments) {
-    _program = program.filter(
+    processedModule = module.filter(
       (item) => !(item instanceof astCommon.CommentNode),
     );
+  } else {
+    processedModule = module;
   }
 
-  const table = _program
+  const table = processedModule
     .flatMap((node) => [...processNode(node, options), sigils.NL])
     .join('')
     .trim()

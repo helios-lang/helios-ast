@@ -17,43 +17,6 @@ export type Atom =
   | { kind: 'literal'; literal: Literal }
   | { kind: 'list'; values: Atom[] };
 
-export type StringifyResult = (false | string)[];
-
-export const comment = (...contents: string[]): CommentNode =>
-  new CommentNode(contents.join('\n'));
-
-export const docComment = (...contents: string[]): CommentNode =>
-  new CommentNode(contents.join('\n'), true);
-
-export const ident = (identifier: string): IdentifierNode =>
-  new IdentifierNode(identifier as Identifier);
-
-export const path = (head: string, ...tail: string[]): PathNode =>
-  new PathNode([head, ...tail].map(ident));
-
-export function type(child: TypeNodeChild): TypeNode {
-  return new TypeNode(child);
-}
-
-export const inferredType = (): TypeNodeOrNull => null;
-
-export function typedIdent(
-  identifier: string,
-  child: TypeNodeChild,
-): AlwaysTypedIdentifier {
-  return { identifier: ident(identifier), suffix: type(child) };
-}
-
-export function optTypedIdent(
-  identifier: string,
-  child: TypeNodeChild | null = null,
-): MaybeTypedIdentifier {
-  return {
-    identifier: ident(identifier),
-    suffix: child ? type(child) : null,
-  };
-}
-
 export abstract class AstNode {
   abstract accept<R, V extends AstVisitor<R>>(visitor: V): R;
 }
@@ -142,10 +105,48 @@ export type IdentifierWithSuffix<T> = { identifier: IdentifierNode; suffix: T };
 export type AlwaysTypedIdentifier = IdentifierWithSuffix<TypeNode>;
 export type MaybeTypedIdentifier = IdentifierWithSuffix<TypeNodeOrNull>;
 
-export type Program = TopLevelNode[];
+export type Module = TopLevelNode[];
 export type TopLevelNode = CommentNode | Declaration;
 
 export function capitalizeModuleName(string: string): string {
   if (string.length == 2) return string.toUpperCase();
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export const module = (...nodes: (TopLevelNode | TopLevelNode[])[]): Module =>
+  nodes.flat();
+
+export const comment = (...contents: string[]): CommentNode =>
+  new CommentNode(contents.join('\n'));
+
+export const docComment = (...contents: string[]): CommentNode =>
+  new CommentNode(contents.join('\n'), true);
+
+export const ident = (identifier: string): IdentifierNode =>
+  new IdentifierNode(identifier as Identifier);
+
+export const path = (head: string, ...tail: string[]): PathNode =>
+  new PathNode([head, ...tail].map(ident));
+
+export function type(child: TypeNodeChild): TypeNode {
+  return new TypeNode(child);
+}
+
+export const inferredType = (): TypeNodeOrNull => null;
+
+export function typedIdent(
+  identifier: string,
+  child: TypeNodeChild,
+): AlwaysTypedIdentifier {
+  return { identifier: ident(identifier), suffix: type(child) };
+}
+
+export function optTypedIdent(
+  identifier: string,
+  child: TypeNodeChild | null = null,
+): MaybeTypedIdentifier {
+  return {
+    identifier: ident(identifier),
+    suffix: child ? type(child) : null,
+  };
 }

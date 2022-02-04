@@ -429,14 +429,17 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 interface StringifyOptions extends visitorCommon.AstVisitorOptions {}
 
 export function stringify(
-  program: astCommon.Program,
+  module: astCommon.Module,
   options: StringifyOptions = {},
 ): string {
-  let _program = program;
+  let processedModule: astCommon.Module;
+
   if (options.stripComments) {
-    _program = program.filter(
+    processedModule = module.filter(
       (item) => !(item instanceof astCommon.CommentNode),
     );
+  } else {
+    processedModule = module;
   }
 
   const processTopLevelNodes = (node: astCommon.TopLevelNode) => [
@@ -444,7 +447,7 @@ export function stringify(
     sigils.NL,
   ];
 
-  return _program.flatMap(processTopLevelNodes).join('').trim();
+  return processedModule.flatMap(processTopLevelNodes).join('').trim();
 }
 
 function processIndentsForNode(
