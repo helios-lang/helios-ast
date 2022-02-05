@@ -3,6 +3,9 @@ export const FILE_EXTENSION = 'hl';
 export const keyword = {
   bindingImmutable: 'let',
   bindingMutable: 'var',
+  caseBegin: 'case',
+  caseBranchBegin: '->',
+  caseOf: 'of',
   function: 'define',
   ifBegin: 'if',
   ifElse: 'else',

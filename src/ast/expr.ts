@@ -194,3 +194,18 @@ export class IfExpression extends Expression {
     return visitor.visitIfExpression(this);
   }
 }
+
+type CaseExpressionBranch = readonly [AstNode, Expression];
+
+export class CaseExpression extends Expression {
+  constructor(
+    readonly predicate: Expression,
+    readonly branches: CaseExpressionBranch[],
+  ) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitCaseExpression(this);
+  }
+}

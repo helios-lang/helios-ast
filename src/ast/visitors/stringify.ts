@@ -18,6 +18,7 @@ import {
   BinaryExpression,
   BlockExpression,
   CallExpression,
+  CaseExpression,
   ConstructorExpression,
   DotExpression,
   IfExpression,
@@ -506,22 +507,66 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitIfExpression(expr: IfExpression): StringifyResult {
+    const isConditionBlockExpr = expr.condition instanceof BlockExpression;
+    const isThenBodyBlockExpr = expr.thenBody instanceof BlockExpression;
+    const isElseBodyBlockExpr = expr.elseBody instanceof BlockExpression;
+
     const stringified: StringifyResult = [
       this.keywords.ifBegin,
-      sigils.SP,
+      !isConditionBlockExpr && sigils.SP,
       ...expr.condition.accept<StringifyResult, this>(this),
-      !(expr.condition instanceof BlockExpression) && sigils.SP,
+      !isConditionBlockExpr && sigils.SP,
       this.keywords.ifThen,
-      sigils.SP,
+      !isThenBodyBlockExpr && sigils.SP,
       ...expr.thenBody.accept<StringifyResult, this>(this),
     ];
 
     if (expr.elseBody) {
       stringified.push(
-        !(expr.thenBody instanceof BlockExpression) && sigils.SP,
+        !isThenBodyBlockExpr && sigils.SP,
         this.keywords.ifElse,
-        sigils.SP,
+        !isElseBodyBlockExpr && sigils.SP,
         ...expr.elseBody.accept<StringifyResult, this>(this),
+      );
+    }
+
+    return stringified;
+  }
+
+  visitCaseExpression(expr: CaseExpression): StringifyResult {
+    const isPredicateBlockExpr = expr.predicate instanceof BlockExpression;
+
+    const stringified: StringifyResult = [
+      this.keywords.caseBegin,
+      !isPredicateBlockExpr && sigils.SP,
+      ...expr.predicate.accept<StringifyResult, this>(this),
+      !isPredicateBlockExpr && sigils.SP,
+      this.keywords.caseOf,
+    ];
+
+    if (expr.branches.length > 0) {
+      stringified.push(
+        sigils.BEGIN,
+        ...expr.branches.flatMap(([pattern, expression], index, array) => {
+          const isExpressionBlockExpr = expression instanceof BlockExpression;
+          const stringified: StringifyResult = [
+            ...pattern.accept<StringifyResult, this>(this),
+            sigils.SP,
+            this.keywords.caseBranchBegin,
+            !isExpressionBlockExpr && sigils.SP,
+            ...expression.accept<StringifyResult, this>(this),
+          ];
+
+          if (index === array.length) return stringified;
+          return stringified.concat(sigils.CONT);
+        }),
+        sigils.END,
+      );
+    } else {
+      stringified.push(
+        sigils.BEGIN,
+        ...astCommon.placeholder().accept<StringifyResult, this>(this),
+        sigils.END,
       );
     }
 

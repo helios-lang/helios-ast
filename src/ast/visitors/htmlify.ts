@@ -20,6 +20,7 @@ import {
   BinaryExpression,
   BlockExpression,
   CallExpression,
+  CaseExpression,
   ConstructorExpression,
   DotExpression,
   IfExpression,
@@ -742,22 +743,66 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitIfExpression(expr: IfExpression): HtmlifyResult {
+    const isConditionBlockExpr = expr.condition instanceof BlockExpression;
+    const isThenBodyBlockExpr = expr.thenBody instanceof BlockExpression;
+    const isElseBodyBlockExpr = expr.elseBody instanceof BlockExpression;
+
     const htmlified: HtmlifyResult = [
       this.keywordElement(this.keywords.ifBegin),
-      g.SP,
+      !isConditionBlockExpr && g.SP,
       ...expr.condition.accept<HtmlifyResult, this>(this),
-      g.SP,
+      !isConditionBlockExpr && g.SP,
       this.keywordElement(this.keywords.ifThen),
-      g.SP,
+      !isThenBodyBlockExpr && g.SP,
       ...expr.thenBody.accept<HtmlifyResult, this>(this),
     ];
 
     if (expr.elseBody) {
       htmlified.push(
-        !(expr.thenBody instanceof BlockExpression) && g.SP,
+        !isThenBodyBlockExpr && g.SP,
         this.keywordElement(this.keywords.ifElse),
-        g.SP,
+        !isElseBodyBlockExpr && g.SP,
         ...expr.elseBody.accept<HtmlifyResult, this>(this),
+      );
+    }
+
+    return htmlified;
+  }
+
+  visitCaseExpression(expr: CaseExpression): HtmlifyResult {
+    const isPredicateBlockExpr = expr.predicate instanceof BlockExpression;
+
+    const htmlified: HtmlifyResult = [
+      this.keywordElement(this.keywords.caseBegin),
+      !isPredicateBlockExpr && g.SP,
+      ...expr.predicate.accept<HtmlifyResult, this>(this),
+      !isPredicateBlockExpr && g.SP,
+      this.keywordElement(this.keywords.caseOf),
+    ];
+
+    if (expr.branches.length > 0) {
+      htmlified.push(
+        g.BEGIN,
+        ...expr.branches.flatMap(([pattern, expression], index, array) => {
+          const isExpressionBlockExpr = expression instanceof BlockExpression;
+          const htmlified: HtmlifyResult = [
+            ...pattern.accept<HtmlifyResult, this>(this),
+            g.SP,
+            this.keywordElement(this.keywords.caseBranchBegin),
+            !isExpressionBlockExpr && g.SP,
+            ...expression.accept<HtmlifyResult, this>(this),
+          ];
+
+          if (index === array.length) return htmlified;
+          return htmlified.concat(g.CONT);
+        }),
+        g.END,
+      );
+    } else {
+      htmlified.push(
+        g.BEGIN,
+        ...astCommon.placeholder().accept<HtmlifyResult, this>(this),
+        g.END,
       );
     }
 
@@ -781,12 +826,13 @@ export function htmlify<K extends string = string>(
   return Object.entries<astCommon.Module>(modules).reduce<
     HtmlifiedModuleDictionary<K>
   >((acc, curr) => {
-    acc[curr[0] as K] = htmlifyModule(curr[1], options, registry);
+    acc[curr[0] as K] = htmlifyModule(curr[0], curr[1], options, registry);
     return acc;
   }, {} as HtmlifiedModuleDictionary<K>);
 }
 
 function htmlifyModule(
+  moduleName: string,
   module: astCommon.Module,
   options: HtmlifyOptions,
   registry: HtmlifyFileRegistry,
@@ -821,7 +867,7 @@ function htmlifyModule(
   return [
     `<!DOCTYPE html>`,
     `<html lang="en">`,
-    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="lang.css" /><title>program.hl</title></head>`,
+    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="lang.css" /><title>${moduleName}.hl</title></head>`,
     `<body>`,
     `<table><tbody>`,
     table,

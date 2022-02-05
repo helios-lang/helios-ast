@@ -44,7 +44,28 @@ export default ast.module(
           new ast.BlockExpression([
             new ast.ConstructorExpression(ast.ident('Quit')),
           ]),
-          new ast.BlockExpression([ast.placeholder()]),
+          new ast.BlockExpression([
+            new ast.CaseExpression(
+              new ast.CallExpression(ast.path('ordering', 'compare'), [
+                new ast.DotExpression([ast.ident('game'), ast.ident('answer')]),
+                ast.ident('number'),
+              ]),
+              [
+                [
+                  new ast.ConstructorExpression(ast.path('ordering', 'Gt')),
+                  new ast.ConstructorExpression(ast.ident('Too_High')),
+                ],
+                [
+                  new ast.ConstructorExpression(ast.path('ordering', 'Lt')),
+                  new ast.ConstructorExpression(ast.ident('Too_Low')),
+                ],
+                [
+                  new ast.ConstructorExpression(ast.path('ordering', 'Eq')),
+                  new ast.ConstructorExpression(ast.ident('Win')),
+                ],
+              ],
+            ),
+          ]),
         ),
       ]),
     ),
