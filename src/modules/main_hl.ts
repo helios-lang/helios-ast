@@ -12,6 +12,7 @@ export default ast.module(
       new ast.ImportDeclaration(ast.path('point'), {
         exposedIdentifiers: [{ identifier: 'Point' }],
       }),
+      new ast.ImportDeclaration(ast.path('guess')),
     ]),
   ],
   [

@@ -450,29 +450,36 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitConstructorDeclaration(decl: ConstructorDeclaration): HtmlifyResult {
-    return [
+    const htmlified: HtmlifyResult = [
       s([HtmlClass.CONSTRUCTOR], t(decl.identifier.name)),
-      this.symbolElement(this.symbols.constructorInvokeBegin),
-      ...decl.parameters.flatMap(({ identifier, suffix }, index, array) => {
-        const htmlified: HtmlifyResult = [
-          s(
-            [HtmlClass.CONSTRUCTOR],
-            t(identifier.name),
-            `${identifier.name}${this.symbols.typeAnnotation} ${this.symbols.placeholder}`,
-          ),
-          this.symbolElement(this.symbols.typeAnnotation),
-          g.SP,
-          ...suffix.accept<HtmlifyResult, this>(this),
-        ];
-
-        if (index === array.length - 1) return htmlified;
-        return htmlified.concat(
-          this.symbolElement(this.symbols.constructorParameterSeparator),
-          g.SP,
-        );
-      }),
-      this.symbolElement(this.symbols.constructorInvokeEnd),
     ];
+
+    if (decl.parameters.length > 0) {
+      htmlified.push(
+        this.symbolElement(this.symbols.constructorInvokeBegin),
+        ...decl.parameters.flatMap(({ identifier, suffix }, index, array) => {
+          const htmlified: HtmlifyResult = [
+            s(
+              [HtmlClass.CONSTRUCTOR],
+              t(identifier.name),
+              `${identifier.name}${this.symbols.typeAnnotation} ${this.symbols.placeholder}`,
+            ),
+            this.symbolElement(this.symbols.typeAnnotation),
+            g.SP,
+            ...suffix.accept<HtmlifyResult, this>(this),
+          ];
+
+          if (index === array.length - 1) return htmlified;
+          return htmlified.concat(
+            this.symbolElement(this.symbols.constructorParameterSeparator),
+            g.SP,
+          );
+        }),
+        this.symbolElement(this.symbols.constructorInvokeEnd),
+      );
+    }
+
+    return htmlified;
   }
 
   visitSumTypeDeclaration(decl: SumTypeDeclaration): HtmlifyResult {
@@ -485,10 +492,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       g.BEGIN,
       this.symbolElement(this.symbols.constructorDeclarationBegin),
       g.SP,
-      ...new ConstructorDeclaration(decl.identifier, decl.fields).accept<
-        HtmlifyResult,
-        this
-      >(this),
+      ...new ConstructorDeclaration(
+        astCommon.ident(decl.identifier.name),
+        decl.fields,
+      ).accept<HtmlifyResult, this>(this),
       g.END,
     ];
   }

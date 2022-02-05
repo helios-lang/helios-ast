@@ -1,9 +1,11 @@
 import * as fs from 'https://deno.land/std@0.123.0/fs/mod.ts';
 
 import * as ast from './ast/mod.ts';
+
 import mainModule from './modules/main_hl.ts';
-import attendanceModule from './modules/attendance_hl.ts';
 import pointModule from './modules/point_hl.ts';
+import attendanceModule from './modules/attendance_hl.ts';
+import guessModule from './modules/guess_hl.ts';
 
 async function main() {
   const options: ast.AstVisitorOptions = {
@@ -15,11 +17,16 @@ async function main() {
     },
   };
 
-  const stringified = ast.stringify(mainModule, options);
+  const stringified = ast.stringify(guessModule, options);
   console.log(stringified, '\n');
 
   const htmlified = ast.htmlify(
-    { main: mainModule, attendance: attendanceModule, point: pointModule },
+    {
+      main: mainModule,
+      point: pointModule,
+      attendance: attendanceModule,
+      guess: guessModule,
+    },
     options,
   );
 

@@ -266,18 +266,28 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitConstructorDeclaration(decl: ConstructorDeclaration): StringifyResult {
-    return [
-      ...decl.identifier.accept<StringifyResult, this>(this),
-      this.symbols.constructorInvokeBegin,
-      ...this.toParameterList(
-        decl.parameters,
-        this.symbols.constructorParameterSeparator,
-      ),
-      this.symbols.constructorInvokeEnd,
-    ];
+    console.log({ constructor: decl });
+    const stringified: StringifyResult = decl.identifier.accept<
+      StringifyResult,
+      this
+    >(this);
+
+    if (decl.parameters.length > 0) {
+      stringified.push(
+        this.symbols.constructorInvokeBegin,
+        ...this.toParameterList(
+          decl.parameters,
+          this.symbols.constructorParameterSeparator,
+        ),
+        this.symbols.constructorInvokeEnd,
+      );
+    }
+
+    return stringified;
   }
 
   visitSumTypeDeclaration(decl: SumTypeDeclaration): StringifyResult {
+    console.log({ sumType: decl });
     return [
       this.keywords.type,
       sigils.SP,
@@ -287,10 +297,10 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       sigils.BEGIN,
       this.symbols.constructorDeclarationBegin,
       sigils.SP,
-      ...new ConstructorDeclaration(decl.identifier, decl.fields).accept<
-        StringifyResult,
-        this
-      >(this),
+      ...new ConstructorDeclaration(
+        astCommon.ident(decl.identifier.name),
+        decl.fields,
+      ).accept<StringifyResult, this>(this),
       sigils.END,
     ];
   }
