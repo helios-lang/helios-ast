@@ -17,7 +17,7 @@ async function main() {
     },
   };
 
-  const stringified = ast.stringify(mainModule, options);
+  const stringified = ast.stringify(guessModule, options);
   console.log(stringified, '\n');
 
   const htmlified = ast.htmlify(

@@ -801,6 +801,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       htmlified.push(
         g.BEGIN,
         ...astCommon.placeholder().accept<HtmlifyResult, this>(this),
+        g.SP,
+        this.keywordElement(this.keywords.caseBranchBegin),
+        g.SP,
+        ...astCommon.placeholder().accept<HtmlifyResult, this>(this),
         g.END,
       );
     }

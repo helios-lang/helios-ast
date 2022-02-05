@@ -566,6 +566,10 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       stringified.push(
         sigils.BEGIN,
         ...astCommon.placeholder().accept<StringifyResult, this>(this),
+        sigils.SP,
+        this.keywords.caseBranchBegin,
+        sigils.SP,
+        ...astCommon.placeholder().accept<StringifyResult, this>(this),
         sigils.END,
       );
     }

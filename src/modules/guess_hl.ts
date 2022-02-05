@@ -20,9 +20,9 @@ export default ast.module(
   ],
   [
     new ast.ProductTypeDeclaration(ast.typeIdent('Guess_Result'), [
+      new ast.ConstructorDeclaration(ast.ident('Win'), []),
       new ast.ConstructorDeclaration(ast.ident('Too_Low'), []),
       new ast.ConstructorDeclaration(ast.ident('Too_High'), []),
-      new ast.ConstructorDeclaration(ast.ident('Win'), []),
       new ast.ConstructorDeclaration(ast.ident('Quit'), []),
     ]),
   ],
@@ -52,16 +52,16 @@ export default ast.module(
               ]),
               [
                 [
-                  new ast.ConstructorExpression(ast.path('ordering', 'Gt')),
-                  new ast.ConstructorExpression(ast.ident('Too_High')),
+                  new ast.ConstructorExpression(ast.path('ordering', 'Eq')),
+                  new ast.ConstructorExpression(ast.ident('Win')),
                 ],
                 [
                   new ast.ConstructorExpression(ast.path('ordering', 'Lt')),
                   new ast.ConstructorExpression(ast.ident('Too_Low')),
                 ],
                 [
-                  new ast.ConstructorExpression(ast.path('ordering', 'Eq')),
-                  new ast.ConstructorExpression(ast.ident('Win')),
+                  new ast.ConstructorExpression(ast.path('ordering', 'Gt')),
+                  new ast.ConstructorExpression(ast.ident('Too_High')),
                 ],
               ],
             ),
@@ -78,7 +78,83 @@ export default ast.module(
         ast.identWithType('round', ast.typeIdent('Int')),
       ],
       ast.type(ast.typeIdent('Guess_Result')),
-      new ast.BlockExpression([ast.placeholder()]),
+      new ast.BlockExpression([
+        new ast.CallExpression(ast.path('io', 'print'), [
+          new ast.InterpolatedStringExpression([
+            'Enter your guess (0 to ',
+            new ast.DotExpression([ast.ident('game'), ast.ident('highest')]),
+            '): ',
+          ]),
+        ]),
+        new ast.BindingDeclaration(
+          ast.ident('result'),
+          ast.inferredType(),
+          new ast.BinaryExpression(
+            '|>',
+            new ast.CallExpression(ast.path('io', 'readline')),
+            new ast.BinaryExpression(
+              '|>',
+              new ast.CallExpression(ast.path('result', 'map'), [
+                new ast.DotExpression([ast.ident('string'), ast.ident('trim')]),
+              ]),
+              new ast.BinaryExpression(
+                '|>',
+                new ast.CallExpression(ast.path('result', 'map'), [
+                  new ast.DotExpression([ast.ident('int'), ast.ident('parse')]),
+                ]),
+                new ast.CallExpression(ast.ident('check_number'), [
+                  ast.ident('game'),
+                  ast.ident('_'),
+                ]),
+              ),
+            ),
+          ),
+        ),
+        new ast.CaseExpression(ast.ident('result'), [
+          [
+            new ast.ConstructorExpression(ast.ident('Okay'), [
+              ast.labelledParam(
+                'value',
+                new ast.ConstructorExpression(ast.ident('Win')),
+              ),
+            ]),
+            ast.placeholder(),
+          ],
+          [
+            new ast.ConstructorExpression(ast.ident('Okay'), [
+              ast.labelledParam(
+                'value',
+                new ast.ConstructorExpression(ast.ident('Too_Low')),
+              ),
+            ]),
+            ast.placeholder(),
+          ],
+          [
+            new ast.ConstructorExpression(ast.ident('Okay'), [
+              ast.labelledParam(
+                'value',
+                new ast.ConstructorExpression(ast.ident('Too_High')),
+              ),
+            ]),
+            ast.placeholder(),
+          ],
+          [
+            new ast.ConstructorExpression(ast.ident('Okay'), [
+              ast.labelledParam(
+                'value',
+                new ast.ConstructorExpression(ast.ident('Quit')),
+              ),
+            ]),
+            ast.placeholder(),
+          ],
+          [
+            new ast.ConstructorExpression(ast.ident('Error'), [
+              ast.labelledParam('reason', ast.placeholder()),
+            ]),
+            ast.placeholder(),
+          ],
+        ]),
+      ]),
     ),
   ],
   [
@@ -90,14 +166,14 @@ export default ast.module(
         new ast.BindingDeclaration(
           ast.ident('highest'),
           ast.inferredType(),
-          ast.literal(101),
+          ast.literal(100),
         ),
         new ast.BindingDeclaration(
           ast.ident('answer'),
           ast.inferredType(),
           new ast.CallExpression(ast.path('random', 'random_integer_between'), [
             ast.literal(0),
-            ast.ident('highest'),
+            new ast.BinaryExpression('+', ast.ident('highest'), ast.literal(1)),
           ]),
         ),
         new ast.BindingDeclaration(
