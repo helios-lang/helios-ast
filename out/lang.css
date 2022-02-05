@@ -1,0 +1,82 @@
+body {
+  display: flex;
+  height: 100%;
+  margin: 0;
+  padding: 32px 32px;
+  font-size: 1.1rem;
+  line-height: 1.1;
+}
+
+table {
+  display: block;
+  overflow: auto;
+  width: 100%;
+  max-height: 100%;
+  border: gray 1px solid;
+  border-radius: 8px;
+  padding: 8px 0;
+}
+
+tbody { vertical-align: top; }
+
+tr:first-child { margin-top: 10px; }
+
+td { white-space: pre; }
+td.blob { font-family: "Ubuntu Mono", monospace; }
+
+td.number::before { content: attr(data-line-number); }
+td.number {
+  color: gray;
+  width: 1%;
+  padding: 0 16px;
+  min-width: 30px;
+  text-align: right;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+td.line { padding: 0 8px; width: 100%; overflow: visible; }
+td.line span.cmt { color: green; }
+td.line span.con { color: purple; }
+td.line span.dec { color: crimson; }
+td.line span.eff { color: purple; }
+td.line span.fun { color: #795e26; }
+td.line span.gen { color: darkcyan; font-style: italic; }
+td.line span.kwd { color: blue; }
+td.line span.mod { color: darkcyan; }
+td.line span.num { color: forestgreen; }
+td.line span.opr { color: blue; }
+td.line span.str { color: maroon; }
+td.line span.typ { color: darkcyan; }
+
+td.line.highlighted {
+  background-color: #fdf3d6;
+  box-shadow: -3px 0 0 0 #ffd04d;
+}
+
+a { color: inherit; }
+a.lib { color: maroon; text-decoration: underline; }
+a.imp { text-decoration: none; }
+
+.tooltip {
+  position: relative;
+  border-bottom: 1px dashed gray;
+}
+
+.tooltip::before {
+  display: none;
+  content: attr(data-tooltip-text);
+  position: absolute;
+  left: 100%;
+  top: 100%;
+  padding: 8px;
+  color: black;
+  background-color: lightyellow;
+  border: lightsalmon 1px solid;
+  border-radius: 8px;
+}
+
+.tooltip:hover::before {
+  display: block;
+}

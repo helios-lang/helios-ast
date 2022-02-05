@@ -740,9 +740,10 @@ function htmlifyModule(
     .split('\n')
     .concat('\n')
     .map((line, index) => {
+      const lineNumber = index + 1;
       return [
         `<tr>`,
-        `<td id="L${index + 1}" class="blob number">${index + 1}</td>`,
+        `<td id="L${lineNumber}" class="blob number" data-line-number="${lineNumber}"></td>`,
         `<td class="blob line">${line.length > 0 ? line : '&NewLine;'}</td>`,
         `</tr>`,
       ].join('');
