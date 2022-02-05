@@ -155,9 +155,9 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     const list = parameters.flatMap(({ identifier, suffix }, index, array) => {
       const htmlified: HtmlifyResult = [
         s(
-          [HtmlClass.CONSTRUCTOR],
+          [HtmlClass.IDENTIFIER],
           t(identifier.name),
-          `${identifier.name}${this.symbols.typeAnnotation} ???`,
+          `${identifier.name}${this.symbols.typeAnnotation} ${this.symbols.placeholder}`,
         ),
       ];
 
@@ -201,7 +201,13 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitIdentifierNode(node: astCommon.IdentifierNode): HtmlifyResult {
-    return [s([HtmlClass.IDENTIFIER], t(node.name))];
+    return [
+      s(
+        [HtmlClass.IDENTIFIER],
+        t(node.name),
+        `${node.name}${this.symbols.typeAnnotation} ${this.symbols.placeholder}`,
+      ),
+    ];
   }
 
   visitModuleNode(node: astCommon.IdentifierNode): HtmlifyResult {
@@ -246,15 +252,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   visitAnonymousConstructorNode(
     node: astCommon.AnonymousConstructorNode,
   ): HtmlifyResult {
-    return [
-      s([HtmlClass.CONSTRUCTOR], t(this.symbols.anonymousConstructorTag)),
-      this.symbolElement(this.symbols.anonymousConstructorInvokeBegin),
-      ...this.toParameterList(
-        node.fields,
-        this.symbolElement(this.symbols.anonymousConstructorSeparator),
-      )[0],
-      this.symbolElement(this.symbols.anonymousConstructorInvokeEnd),
-    ];
+    return new ConstructorDeclaration(
+      astCommon.ident(this.symbols.anonymousConstructorTag),
+      node.fields,
+    ).accept(this);
   }
 
   visitGenericsListNode(node: astCommon.GenericsListNode): HtmlifyResult {
@@ -432,10 +433,24 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [
       s([HtmlClass.CONSTRUCTOR], t(decl.identifier.name)),
       this.symbolElement(this.symbols.constructorInvokeBegin),
-      ...this.toParameterList(
-        decl.parameters,
-        this.symbolElement(this.symbols.constructorParameterSeparator),
-      )[0],
+      ...decl.parameters.flatMap(({ identifier, suffix }, index, array) => {
+        const htmlified: HtmlifyResult = [
+          s(
+            [HtmlClass.CONSTRUCTOR],
+            t(identifier.name),
+            `${identifier.name}${this.symbols.typeAnnotation} ${this.symbols.placeholder}`,
+          ),
+          this.symbolElement(this.symbols.typeAnnotation),
+          g.SP,
+          ...suffix.accept<HtmlifyResult, this>(this),
+        ];
+
+        if (index === array.length - 1) return htmlified;
+        return htmlified.concat(
+          this.symbolElement(this.symbols.constructorParameterSeparator),
+          g.SP,
+        );
+      }),
       this.symbolElement(this.symbols.constructorInvokeEnd),
     ];
   }
