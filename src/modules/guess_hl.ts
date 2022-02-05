@@ -34,7 +34,19 @@ export default ast.module(
         ast.identWithType('number', ast.typeIdent('Int')),
       ],
       ast.type(ast.typeIdent('Guess_Result')),
-      new ast.BlockExpression([ast.placeholder()]),
+      new ast.BlockExpression([
+        new ast.IfExpression(
+          new ast.BinaryExpression(
+            '=',
+            ast.ident('number'),
+            new ast.UnaryExpression('-', ast.literal(1)),
+          ),
+          new ast.BlockExpression([
+            new ast.ConstructorExpression(ast.ident('Quit')),
+          ]),
+          new ast.BlockExpression([ast.placeholder()]),
+        ),
+      ]),
     ),
   ],
   [

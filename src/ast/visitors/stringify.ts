@@ -20,6 +20,7 @@ import {
   CallExpression,
   ConstructorExpression,
   DotExpression,
+  IfExpression,
   InterpolatedStringExpression,
   LambdaExpression,
   ListExpression,
@@ -266,7 +267,6 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitConstructorDeclaration(decl: ConstructorDeclaration): StringifyResult {
-    console.log({ constructor: decl });
     const stringified: StringifyResult = decl.identifier.accept<
       StringifyResult,
       this
@@ -287,7 +287,6 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitSumTypeDeclaration(decl: SumTypeDeclaration): StringifyResult {
-    console.log({ sumType: decl });
     return [
       this.keywords.type,
       sigils.SP,
@@ -431,24 +430,32 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitConstructorExpression(expr: ConstructorExpression): StringifyResult {
-    return [
-      ...expr.identifier.accept<StringifyResult, this>(this),
-      this.symbols.functionInvokeBegin,
-      ...expr.arguments_.flatMap((argument, index, array) => {
-        const stringified = [
-          ...argument.identifier.accept<StringifyResult, this>(this),
-          this.symbols.labelledParameterAnnotation,
-          sigils.SP,
-          ...argument.suffix.accept<StringifyResult, this>(this),
-        ];
-        if (index === array.length - 1) return stringified;
-        return stringified.concat(
-          this.symbols.functionParameterSeparator,
-          sigils.SP,
-        );
-      }),
-      this.symbols.functionInvokeEnd,
-    ];
+    const stringified: StringifyResult = expr.identifier.accept<
+      StringifyResult,
+      this
+    >(this);
+
+    if (expr.arguments_.length > 0) {
+      stringified.push(
+        this.symbols.functionInvokeBegin,
+        ...expr.arguments_.flatMap((argument, index, array) => {
+          const stringified = [
+            ...argument.identifier.accept<StringifyResult, this>(this),
+            this.symbols.labelledParameterAnnotation,
+            sigils.SP,
+            ...argument.suffix.accept<StringifyResult, this>(this),
+          ];
+          if (index === array.length - 1) return stringified;
+          return stringified.concat(
+            this.symbols.functionParameterSeparator,
+            sigils.SP,
+          );
+        }),
+        this.symbols.functionInvokeEnd,
+      );
+    }
+
+    return stringified;
   }
 
   visitDotExpression(expr: DotExpression): StringifyResult {
@@ -496,6 +503,29 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       sigils.SP,
       ...expr.body.accept<StringifyResult, this>(this),
     ];
+  }
+
+  visitIfExpression(expr: IfExpression): StringifyResult {
+    const stringified: StringifyResult = [
+      this.keywords.ifBegin,
+      sigils.SP,
+      ...expr.condition.accept<StringifyResult, this>(this),
+      !(expr.condition instanceof BlockExpression) && sigils.SP,
+      this.keywords.ifThen,
+      sigils.SP,
+      ...expr.thenBody.accept<StringifyResult, this>(this),
+    ];
+
+    if (expr.elseBody) {
+      stringified.push(
+        !(expr.thenBody instanceof BlockExpression) && sigils.SP,
+        this.keywords.ifElse,
+        sigils.SP,
+        ...expr.elseBody.accept<StringifyResult, this>(this),
+      );
+    }
+
+    return stringified;
   }
 }
 

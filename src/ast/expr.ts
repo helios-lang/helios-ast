@@ -113,7 +113,7 @@ export class CallExpression extends Expression {
 export class ConstructorExpression extends Expression {
   constructor(
     readonly identifier: IdentifierNode | PathNode,
-    readonly arguments_: ReadonlyArray<LabelledParameter>,
+    readonly arguments_: ReadonlyArray<LabelledParameter> = [],
   ) {
     super();
   }
@@ -178,5 +178,19 @@ export class LambdaExpression extends Expression {
 
   accept<R, V extends AstVisitor<R>>(visitor: V): R {
     return visitor.visitLambdaExpression(this);
+  }
+}
+
+export class IfExpression extends Expression {
+  constructor(
+    readonly condition: Expression,
+    readonly thenBody: Expression,
+    readonly elseBody?: Expression,
+  ) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitIfExpression(this);
   }
 }

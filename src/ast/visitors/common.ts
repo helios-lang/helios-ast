@@ -18,6 +18,7 @@ import {
   CallExpression,
   ConstructorExpression,
   DotExpression,
+  IfExpression,
   InterpolatedStringExpression,
   LambdaExpression,
   ListExpression,
@@ -94,4 +95,5 @@ export abstract class AstVisitor<R> {
   abstract visitBinaryExpression(expr: BinaryExpression): R;
   abstract visitBlockExpression(expr: BlockExpression): R;
   abstract visitLambdaExpression(expr: LambdaExpression): R;
+  abstract visitIfExpression(expr: IfExpression): R;
 }

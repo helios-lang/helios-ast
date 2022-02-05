@@ -22,6 +22,7 @@ import {
   CallExpression,
   ConstructorExpression,
   DotExpression,
+  IfExpression,
   InterpolatedStringExpression,
   LambdaExpression,
   ListExpression,
@@ -660,24 +661,29 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       });
     }
 
-    return [
-      ...identifier,
-      this.symbolElement(this.symbols.functionInvokeBegin),
-      ...expr.arguments_.flatMap((argument, index, array) => {
-        const htmlified = [
-          s([HtmlClass.CONSTRUCTOR], t(argument.identifier.name)),
-          this.symbolElement(this.symbols.labelledParameterAnnotation),
-          g.SP,
-          ...argument.suffix.accept<HtmlifyResult, this>(this),
-        ];
-        if (index === array.length - 1) return htmlified;
-        return htmlified.concat(
-          this.symbolElement(this.symbols.functionParameterSeparator),
-          g.SP,
-        );
-      }),
-      this.symbolElement(this.symbols.functionInvokeEnd),
-    ];
+    const htmlified: HtmlifyResult = [...identifier];
+
+    if (expr.arguments_.length > 0) {
+      htmlified.push(
+        this.symbolElement(this.symbols.functionInvokeBegin),
+        ...expr.arguments_.flatMap((argument, index, array) => {
+          const htmlified = [
+            s([HtmlClass.CONSTRUCTOR], t(argument.identifier.name)),
+            this.symbolElement(this.symbols.labelledParameterAnnotation),
+            g.SP,
+            ...argument.suffix.accept<HtmlifyResult, this>(this),
+          ];
+          if (index === array.length - 1) return htmlified;
+          return htmlified.concat(
+            this.symbolElement(this.symbols.functionParameterSeparator),
+            g.SP,
+          );
+        }),
+        this.symbolElement(this.symbols.functionInvokeEnd),
+      );
+    }
+
+    return htmlified;
   }
 
   visitDotExpression(expr: DotExpression): HtmlifyResult {
@@ -733,6 +739,29 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       g.SP,
       ...expr.body.accept<HtmlifyResult, this>(this),
     ];
+  }
+
+  visitIfExpression(expr: IfExpression): HtmlifyResult {
+    const htmlified: HtmlifyResult = [
+      this.keywordElement(this.keywords.ifBegin),
+      g.SP,
+      ...expr.condition.accept<HtmlifyResult, this>(this),
+      g.SP,
+      this.keywordElement(this.keywords.ifThen),
+      g.SP,
+      ...expr.thenBody.accept<HtmlifyResult, this>(this),
+    ];
+
+    if (expr.elseBody) {
+      htmlified.push(
+        !(expr.thenBody instanceof BlockExpression) && g.SP,
+        this.keywordElement(this.keywords.ifElse),
+        g.SP,
+        ...expr.elseBody.accept<HtmlifyResult, this>(this),
+      );
+    }
+
+    return htmlified;
   }
 }
 
