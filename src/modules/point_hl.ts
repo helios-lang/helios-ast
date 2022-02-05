@@ -10,9 +10,9 @@ const imports: ast.TopLevelNode[] = [
 
 const pointType: ast.TopLevelNode[] = [
   ast.docComment('A representation of a point in two-dimensional space.'),
-  new ast.SumTypeDeclaration(ast.ident('Point'), [
-    ast.typedIdent('x', ast.ident('Float')),
-    ast.typedIdent('y', ast.ident('Float')),
+  new ast.SumTypeDeclaration(ast.typeIdent('Point'), [
+    ast.identWithType('x', ast.typeIdent('Float')),
+    ast.identWithType('y', ast.typeIdent('Float')),
   ]),
 ];
 
@@ -33,10 +33,10 @@ const distanceBetweenFunction: ast.TopLevelNode[] = [
   new ast.FunctionDeclaration(
     ast.ident('distance_between'),
     [
-      ast.optTypedIdent('a', ast.ident('Point')),
-      ast.optTypedIdent('b', ast.ident('Point')),
+      ast.identWithOptType('a', ast.typeIdent('Point')),
+      ast.identWithOptType('b', ast.typeIdent('Point')),
     ],
-    ast.type(ast.ident('Float')),
+    ast.type(ast.typeIdent('Float')),
     new ast.BlockExpression([
       new ast.BindingDeclaration(
         ast.ident('dx'),
@@ -77,28 +77,28 @@ const coordSumFunction: ast.TopLevelNode[] = [
   new ast.FunctionDeclaration(
     ast.ident('coord_sum'),
     [
-      ast.optTypedIdent(
+      ast.identWithOptType(
         'values',
         new ast.AnonymousConstructorNode([
-          ast.typedIdent('x', ast.ident('Float')),
-          ast.typedIdent('y', ast.ident('Float')),
-          ast.typedIdent('z', ast.ident('Float')),
+          ast.identWithType('x', ast.typeIdent('Float')),
+          ast.identWithType('y', ast.typeIdent('Float')),
+          ast.identWithType('z', ast.typeIdent('Float')),
         ]),
       ),
     ],
-    ast.type(ast.ident('Float')),
+    ast.type(ast.typeIdent('Float')),
     new ast.BlockExpression([
       new ast.BindingDeclaration(
         ast.ident('sum'),
         ast.inferredType(),
         new ast.LambdaExpression(
-          [ast.optTypedIdent('xs')],
+          [ast.identWithOptType('xs')],
           ast.inferredType(),
           new ast.CallExpression(ast.path('list', 'reduce'), [
             ast.ident('xs'),
             ast.literal(0),
             new ast.LambdaExpression(
-              [ast.optTypedIdent('acc'), ast.optTypedIdent('cur')],
+              [ast.identWithOptType('acc'), ast.identWithOptType('cur')],
               ast.inferredType(),
               new ast.BinaryExpression('+', ast.ident('acc'), ast.ident('cur')),
             ),

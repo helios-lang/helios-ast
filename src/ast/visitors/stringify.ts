@@ -90,8 +90,21 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     return [node.name];
   }
 
-  visitModuleNode(node: astCommon.ModuleIdentifierNode): StringifyResult {
-    return [node.name];
+  visitTypeIdentifierNode(node: astCommon.TypeIdentifierNode): StringifyResult {
+    const stringified: StringifyResult = [node.name];
+
+    if (node.generics) {
+      stringified.push(
+        this.symbols.genericsListBegin,
+        ...this.toSeparatedList(
+          node.generics.identifiers,
+          this.symbols.genericsListSeparator,
+        ),
+        this.symbols.genericsListEnd,
+      );
+    }
+
+    return stringified;
   }
 
   visitTypeNode(node: astCommon.TypeNode): StringifyResult {
@@ -127,11 +140,10 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitGenericsListNode(node: astCommon.GenericsListNode): StringifyResult {
     return [
       this.symbols.genericsListBegin,
-      ...node.identifiers.flatMap((identifier, index, array) => {
-        const stringified = identifier.accept<StringifyResult, this>(this);
-        if (index === array.length - 1) return stringified;
-        return [...stringified, this.symbols.genericsListSeparator, sigils.SP];
-      }),
+      ...this.toSeparatedList(
+        node.identifiers,
+        this.symbols.genericsListSeparator,
+      ),
       this.symbols.genericsListEnd,
     ];
   }
@@ -270,9 +282,6 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.keywords.type,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
-      ...(decl.generics
-        ? decl.generics.accept<StringifyResult, this>(this)
-        : []),
       sigils.SP,
       this.symbols.typeBegin,
       sigils.BEGIN,
@@ -291,9 +300,6 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.keywords.type,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
-      ...(decl.generics
-        ? decl.generics.accept<StringifyResult, this>(this)
-        : []),
       sigils.SP,
       this.symbols.typeBegin,
       sigils.BEGIN,
@@ -312,13 +318,10 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.keywords.typeAlias,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
-      ...(decl.generics
-        ? decl.generics.accept<StringifyResult, this>(this)
-        : []),
       sigils.SP,
       this.symbols.typeBegin,
       sigils.SP,
-      ...new astCommon.PlaceHolderNode().accept<StringifyResult, this>(this),
+      ...decl.type.accept<StringifyResult, this>(this),
     ];
   }
 

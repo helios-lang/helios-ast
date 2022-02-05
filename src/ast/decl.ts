@@ -1,10 +1,10 @@
 import {
   AlwaysTypedIdentifier,
   AstNode,
-  GenericsListNode,
   IdentifierNode,
   MaybeTypedIdentifier,
   PathNode,
+  TypeIdentifierNode,
   TypeNodeOrNull,
 } from './common.ts';
 
@@ -100,9 +100,8 @@ export class ConstructorDeclaration extends Declaration {
 
 export class SumTypeDeclaration extends Declaration {
   constructor(
-    readonly identifier: IdentifierNode,
+    readonly identifier: TypeIdentifierNode,
     readonly fields: ReadonlyArray<AlwaysTypedIdentifier>,
-    readonly generics?: GenericsListNode,
   ) {
     super();
   }
@@ -114,9 +113,8 @@ export class SumTypeDeclaration extends Declaration {
 
 export class ProductTypeDeclaration extends Declaration {
   constructor(
-    readonly identifier: IdentifierNode,
+    readonly identifier: TypeIdentifierNode,
     readonly constructors: ReadonlyArray<ConstructorDeclaration>,
-    readonly generics?: GenericsListNode,
   ) {
     super();
   }
@@ -128,9 +126,8 @@ export class ProductTypeDeclaration extends Declaration {
 
 export class TypeAliasDeclaration extends Declaration {
   constructor(
-    readonly identifier: IdentifierNode,
-    readonly type: IdentifierNode | PathNode,
-    readonly generics?: GenericsListNode,
+    readonly identifier: TypeIdentifierNode,
+    readonly type: TypeIdentifierNode | PathNode,
   ) {
     super();
   }

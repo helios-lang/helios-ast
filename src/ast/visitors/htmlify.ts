@@ -34,6 +34,7 @@ export enum HtmlClass {
   COMMENT = 'cmt',
   CONSTRUCTOR = 'con',
   FUNCTION = 'fun',
+  GENERIC = 'gen',
   IDENTIFIER = 'idt',
   KEYWORD = 'kwd',
   MODULE = 'mod',
@@ -177,6 +178,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [list, hasAnnotation] as const;
   }
 
+  private startsWithCapitalLetter(string: string): boolean {
+    const firstLetter = string.charAt(0);
+    return firstLetter !== firstLetter.toLowerCase();
+  }
+
   visitBlankLineNode(_: astCommon.BlankLineNode): HtmlifyResult {
     return [g.SKIP_NL];
   }
@@ -210,14 +216,37 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     ];
   }
 
-  visitModuleNode(node: astCommon.IdentifierNode): HtmlifyResult {
-    return [s([HtmlClass.MODULE], t(node.name))];
+  visitTypeIdentifierNode(node: astCommon.TypeIdentifierNode): HtmlifyResult {
+    const typeOrGeneric = (ident: string) => {
+      const htmlClass = this.startsWithCapitalLetter(ident)
+        ? HtmlClass.TYPE
+        : HtmlClass.GENERIC;
+      return s([htmlClass], t(ident));
+    };
+
+    const htmlified: HtmlifyResult = [typeOrGeneric(node.name)];
+
+    if (node.generics) {
+      htmlified.push(
+        this.symbolElement(this.symbols.genericsListBegin),
+        ...node.generics.identifiers.flatMap((identifier, index, array) => {
+          const htmlified = typeOrGeneric(identifier.name);
+          if (index === array.length - 1) return htmlified;
+          return [
+            htmlified,
+            this.symbolElement(this.symbols.genericsListSeparator),
+            g.SP,
+          ];
+        }),
+        this.symbolElement(this.symbols.genericsListEnd),
+      );
+    }
+
+    return htmlified;
   }
 
   visitTypeNode({ child }: astCommon.TypeNode): HtmlifyResult {
-    if (child instanceof astCommon.IdentifierNode) {
-      return [s([HtmlClass.TYPE], t(child.name))];
-    } else if (child instanceof astCommon.PathNode) {
+    if (child instanceof astCommon.PathNode) {
       const { components } = child;
       return components.flatMap((component, index, array) => {
         if (index === array.length - 1)
@@ -261,15 +290,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   visitGenericsListNode(node: astCommon.GenericsListNode): HtmlifyResult {
     return [
       this.symbolElement(this.symbols.genericsListBegin),
-      ...node.identifiers.flatMap((identifier, index, array) => {
-        const htmlified = s([HtmlClass.TYPE], t(identifier.name));
-        if (index === array.length - 1) return htmlified;
-        return [
-          htmlified,
-          this.symbolElement(this.symbols.genericsListSeparator),
-          g.SP,
-        ];
-      }),
+      ...this.toSeparatedList(
+        node.identifiers,
+        this.symbolElement(this.symbols.genericsListSeparator),
+      ),
       this.symbolElement(this.symbols.genericsListEnd),
     ];
   }
@@ -348,16 +372,12 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         this.keywordElement(this.keywords.importExposing),
         g.SP,
         ...decl.exposedIdentifiers.flatMap((exposed, index, array) => {
-          const firstLetter = exposed.identifier.charAt(0);
-          const startsWithCapitalLetter =
-            firstLetter !== firstLetter.toLowerCase();
-
-          const renameHtmlClass = startsWithCapitalLetter
+          const htmlClass = this.startsWithCapitalLetter(exposed.identifier)
             ? HtmlClass.CONSTRUCTOR
             : HtmlClass.FUNCTION;
 
           const stringified: HtmlifyResult = [
-            s([renameHtmlClass], t(exposed.identifier)),
+            s([htmlClass], t(exposed.identifier)),
           ];
 
           if (exposed.rename) {
@@ -365,7 +385,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
               g.SP,
               this.keywordElement(this.keywords.importRename),
               g.SP,
-              s([renameHtmlClass], t(exposed.rename)),
+              s([htmlClass], t(exposed.rename)),
             );
           }
 
@@ -459,8 +479,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [
       this.keywordElement(this.keywords.type),
       g.SP,
-      s([HtmlClass.TYPE], t(decl.identifier.name)),
-      ...(decl.generics ? decl.generics.accept<HtmlifyResult, this>(this) : []),
+      ...decl.identifier.accept<HtmlifyResult, this>(this),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.BEGIN,
@@ -478,8 +497,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [
       this.keywordElement(this.keywords.type),
       g.SP,
-      s([HtmlClass.TYPE], t(decl.identifier.name)),
-      ...(decl.generics ? decl.generics.accept<HtmlifyResult, this>(this) : []),
+      ...decl.identifier.accept<HtmlifyResult, this>(this),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.BEGIN,
@@ -497,12 +515,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return [
       this.keywordElement(this.keywords.typeAlias),
       g.SP,
-      s([HtmlClass.TYPE], t(decl.identifier.name)),
-      ...(decl.generics ? decl.generics.accept<HtmlifyResult, this>(this) : []),
+      ...decl.identifier.accept<HtmlifyResult, this>(this),
       g.SP,
       this.symbolElement(this.symbols.typeBegin),
       g.SP,
-      ...new astCommon.PlaceHolderNode().accept<HtmlifyResult, this>(this),
+      ...decl.type.accept<HtmlifyResult, this>(this),
     ];
   }
 
@@ -829,13 +846,13 @@ function htmlElementsToStrings(
         break;
       }
       case 'span': {
-        if (element.tooltipText) {
+        /* if (element.tooltipText) {
           const classes = element.classes.join(' ');
           const tooltipText = element.tooltipText;
           processed.push(
             `<span class="${classes} tooltip" data-tooltip-text="${tooltipText}">`,
           );
-        } else {
+        } else */ {
           processed.push(`<span class="${element.classes.join(' ')}">`);
         }
         if (element.children) {

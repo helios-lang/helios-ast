@@ -16,18 +16,14 @@ export default ast.module(
   ],
   [
     ast.docComment('A type with two constructors.'),
-    new ast.ProductTypeDeclaration(
-      ast.ident('Result'),
-      [
-        new ast.ConstructorDeclaration(ast.ident('Okay'), [
-          ast.typedIdent('value', ast.ident('t')),
-        ]),
-        new ast.ConstructorDeclaration(ast.ident('Error'), [
-          ast.typedIdent('reason', ast.ident('e')),
-        ]),
-      ],
-      new ast.GenericsListNode([ast.ident('t'), ast.ident('e')]),
-    ),
+    new ast.ProductTypeDeclaration(ast.typeIdent('Result', ['t', 'e']), [
+      new ast.ConstructorDeclaration(ast.ident('Okay'), [
+        ast.identWithType('value', ast.typeIdent('t')),
+      ]),
+      new ast.ConstructorDeclaration(ast.ident('Error'), [
+        ast.identWithType('reason', ast.typeIdent('e')),
+      ]),
+    ]),
   ],
   [
     ast.comment('This is the entry point of the program.'),
@@ -39,7 +35,7 @@ export default ast.module(
         ast.comment('Bindings can optionally be annotated with their type'),
         new ast.BindingDeclaration(
           ast.ident('name'),
-          ast.type(ast.ident('String')),
+          ast.type(ast.typeIdent('String')),
           ast.literal('Milky'),
         ),
         new ast.CallExpression(ast.path('io', 'println'), [

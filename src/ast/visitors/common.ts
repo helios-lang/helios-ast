@@ -64,7 +64,7 @@ export abstract class AstVisitor<R> {
     node: common.AnonymousConstructorNode,
   ): R;
   abstract visitIdentifierNode(node: common.IdentifierNode): R;
-  abstract visitModuleNode(node: common.ModuleIdentifierNode): R;
+  abstract visitTypeIdentifierNode(node: common.TypeIdentifierNode): R;
   abstract visitTypeNode(node: common.TypeNode): R;
   abstract visitGenericsListNode(node: common.GenericsListNode): R;
 
