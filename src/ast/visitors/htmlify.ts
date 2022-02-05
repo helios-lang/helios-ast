@@ -78,7 +78,6 @@ const g = {
   BEGIN: { tag: 'sigil', text: sigils.BEGIN } as HtmlElement,
   CONT: { tag: 'sigil', text: sigils.CONT } as HtmlElement,
   END: { tag: 'sigil', text: sigils.END } as HtmlElement,
-  SKIP_NL: { tag: 'sigil', text: sigils.SKIP_NL } as HtmlElement,
   RESET: { tag: 'sigil', text: sigils.RESET } as HtmlElement,
 };
 
@@ -186,7 +185,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitBlankLineNode(_: astCommon.BlankLineNode): HtmlifyResult {
-    return [g.SKIP_NL];
+    return [];
   }
 
   visitCommentNode(node: astCommon.CommentNode): HtmlifyResult {
@@ -793,7 +792,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             ...expression.accept<HtmlifyResult, this>(this),
           ];
 
-          if (index === array.length) return htmlified;
+          if (index === array.length - 1) return htmlified;
           return htmlified.concat(g.CONT);
         }),
         g.END,
@@ -855,10 +854,12 @@ function htmlifyModule(
     .concat('\n')
     .map((line, index) => {
       const lineNumber = index + 1;
+      const isLineEmpty = line.replaceAll('&nbsp;', ' ').trim().length === 0;
+      const lineContent = isLineEmpty ? '&NewLine;' : line;
       return [
         `<tr>`,
         `<td id="L${lineNumber}" class="blob number" data-line-number="${lineNumber}"></td>`,
-        `<td class="blob line">${line.length > 0 ? line : '&NewLine;'}</td>`,
+        `<td class="blob line">${lineContent}</td>`,
         `</tr>`,
       ].join('');
     })
@@ -895,32 +896,38 @@ function htmlElementsToStrings(
   indentationCount: number,
 ) {
   let currIndent = 0;
+  let didRecentlyEmitEndToken = false;
   const processed: string[] = [];
   const htmlElements = Array.isArray(elements) ? elements : [elements];
 
   function visitHtmlElement(element: HtmlElement) {
+    if (didRecentlyEmitEndToken && element !== g.END) {
+      didRecentlyEmitEndToken = false;
+    }
+
     switch (element.tag) {
       case 'sigil': {
-        if (element.text === sigils.SP) {
+        if (element === g.SP) {
           processed.push('&nbsp;');
           return;
         }
 
-        if (element.text === sigils.SKIP_NL) return;
-        else processed.push(sigils.NL);
-
-        if (element.text === sigils.BEGIN) {
+        if (element === g.NL) {
+          processed.push(sigils.NL);
+        } else if (element === g.BEGIN) {
           currIndent += indentationCount;
-          processed.push(indent(currIndent));
-        } else if (element.text === sigils.CONT) {
-          processed.push(indent(currIndent));
-        } else if (element.text === sigils.END) {
+          processed.push(sigils.NL, indent(currIndent));
+        } else if (element === g.CONT) {
+          processed.push(sigils.NL, indent(currIndent));
+        } else if (element === g.END) {
           currIndent = Math.max(0, currIndent - indentationCount);
-          // if (currIndent !== 0) processed.push(indent(currIndent));
-          processed.push(indent(currIndent));
-        } else if (element.text === sigils.RESET) {
+          if (!didRecentlyEmitEndToken) {
+            didRecentlyEmitEndToken = true;
+            processed.push(sigils.NL, indent(currIndent));
+          }
+        } else if (element === g.RESET) {
           currIndent = 0;
-          processed.push(indent(currIndent));
+          processed.push(sigils.NL, indent(currIndent));
         } else {
           return;
         }
@@ -966,8 +973,8 @@ function htmlElementsToStrings(
     }
   }
 
-  for (const htmlElement of htmlElements) {
-    visitHtmlElement(htmlElement);
+  for (const element of htmlElements) {
+    visitHtmlElement(element);
   }
 
   return processed;

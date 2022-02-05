@@ -68,7 +68,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitBlankLineNode(_: astCommon.BlankLineNode): StringifyResult {
-    return [sigils.SKIP_NL];
+    return [];
   }
 
   visitCommentNode(node: astCommon.CommentNode): StringifyResult {
@@ -557,7 +557,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             ...expression.accept<StringifyResult, this>(this),
           ];
 
-          if (index === array.length) return stringified;
+          if (index === array.length - 1) return stringified;
           return stringified.concat(sigils.CONT);
         }),
         sigils.END,
@@ -623,29 +623,40 @@ function processIndentsForNode(
 
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
   let currIndent = 0;
+  let didRecentlyEmitEndToken = false;
+
   for (const token of tokens) {
+    if (didRecentlyEmitEndToken && token !== sigils.END) {
+      didRecentlyEmitEndToken = false;
+    }
+
     if (!token.startsWith('<!--')) {
       yield token;
     } else {
-      if (token === sigils.SKIP_NL) continue;
-      else yield sigils.NL;
-
       switch (token) {
         case sigils.BEGIN:
           currIndent += indentationCount;
+          yield sigils.NL;
           yield indent(currIndent);
           break;
         case sigils.CONT:
+          yield sigils.NL;
           yield indent(currIndent);
           break;
         case sigils.END:
           currIndent = Math.max(0, currIndent - indentationCount);
-          yield indent(currIndent);
+          if (!didRecentlyEmitEndToken) {
+            didRecentlyEmitEndToken = true;
+            yield sigils.NL;
+            yield indent(currIndent);
+          }
           break;
         case sigils.RESET:
+          yield sigils.NL;
           currIndent = 0;
           break;
         default:
+          yield sigils.NL;
           yield token;
       }
     }
