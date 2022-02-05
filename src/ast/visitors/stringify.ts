@@ -213,7 +213,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
   visitBindingDeclaration(decl: BindingDeclaration): StringifyResult {
     return [
-      this.keywords.immutableBinding,
+      this.keywords.bindingImmutable,
       sigils.SP,
       ...decl.identifier.accept<StringifyResult, this>(this),
       ...(decl.identifierType

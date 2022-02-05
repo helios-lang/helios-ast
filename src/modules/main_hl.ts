@@ -32,7 +32,7 @@ export default ast.module(
   [
     ast.comment('This is the entry point of the program.'),
     new ast.FunctionDeclaration(
-      ast.ident('__main__'),
+      ast.ident('main'),
       [],
       ast.inferredType(),
       new ast.BlockExpression([
@@ -70,7 +70,7 @@ export default ast.module(
           ]),
         ),
         new ast.BindingDeclaration(
-          ast.ident('distance'),
+          ast.ident('dist'),
           ast.inferredType(),
           new ast.CallExpression(ast.path('point', 'distance_between'), [
             ast.ident('p'),
@@ -80,7 +80,7 @@ export default ast.module(
         new ast.CallExpression(ast.path('io', 'println'), [
           new ast.InterpolatedStringExpression([
             'The distance between p and q is ',
-            ast.ident('distance'),
+            ast.ident('dist'),
           ]),
         ]),
         new ast.BlankLineNode(),
@@ -89,7 +89,7 @@ export default ast.module(
           external: true,
         }),
         new ast.BindingDeclaration(
-          ast.ident('random'),
+          ast.ident('rand'),
           ast.inferredType(),
           new ast.CallExpression(ast.path('random', 'random_integer_between'), [
             ast.literal(0),
@@ -99,7 +99,7 @@ export default ast.module(
         new ast.CallExpression(ast.path('io', 'println'), [
           new ast.InterpolatedStringExpression([
             'The number I chose was ',
-            ast.ident('random'),
+            ast.ident('rand'),
             '!',
           ]),
         ]),

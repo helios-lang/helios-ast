@@ -1,15 +1,15 @@
 export const FILE_EXTENSION = 'hl';
 
 export const keyword = {
+  bindingImmutable: 'let',
+  bindingMutable: 'var',
   function: 'define',
-  immutableBinding: 'let',
-  // mutableBinding: 'local',
   import: 'import',
+  importExposing: 'showing',
+  importRename: 'as',
   lambda: '\\',
   type: 'data',
   typeAlias: 'type',
-  importRename: 'as',
-  importExposing: 'exposing',
 };
 
 export const symbol = {
@@ -32,6 +32,7 @@ export const symbol = {
   genericsListBegin: '(',
   genericsListEnd: ')',
   genericsListSeparator: ',',
+  importExposedIdentifiersSeparator: ',',
   labelledParameterAnnotation: ':',
   lambdaBegin: '->',
   listBegin: '[',
@@ -52,5 +53,4 @@ export const symbol = {
   tupleSeparator: ',',
   typeAnnotation: ':',
   typeBegin: '=',
-  importExposedIdentifiersSeparator: ',',
 };

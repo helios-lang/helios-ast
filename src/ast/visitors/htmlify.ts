@@ -388,7 +388,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
   visitBindingDeclaration(decl: BindingDeclaration): HtmlifyResult {
     return [
-      this.keywordElement(this.keywords.immutableBinding),
+      this.keywordElement(this.keywords.bindingImmutable),
       g.SP,
       ...decl.identifier.accept<HtmlifyResult, this>(this),
       ...(decl.identifierType
