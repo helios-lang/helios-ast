@@ -46,18 +46,45 @@ td.number {
   -moz-user-select: none;
 }
 
-td.line { padding: 0 8px; width: 100%; overflow: visible; }
-td.line span.cmt { color: #008000; }
-td.line span.con { color: #9e039e; }
-td.line span.fun { color: #795E26; }
-td.line span.gen { color: #267f99; font-style: italic; }
-td.line span.idt { color: #001080; }
-td.line span.kwd { color: #0000FF; }
-td.line span.mod { color: #267f99; }
-td.line span.num { color: #098658; }
-td.line span.opr { color: #001080; }
-td.line span.str { color: #A31515; }
-td.line span.typ { color: #267f99; }
+@media (prefers-color-scheme: light) {
+  body {
+    color: black;
+    background-color: white;
+  }
+
+  td.line { padding: 0 8px; width: 100%; overflow: visible; }
+  td.line span.cmt { color: #008000; }
+  td.line span.con { color: #9e039e; }
+  td.line span.fun { color: #795E26; }
+  td.line span.gen { color: #267f99; font-style: italic; }
+  td.line span.idt { color: #001080; }
+  td.line span.kwd { color: #0000FF; }
+  td.line span.mod { color: #267f99; }
+  td.line span.num { color: #098658; }
+  td.line span.opr { color: #001080; }
+  td.line span.str { color: #A31515; }
+  td.line span.typ { color: #267f99; }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #D4D4D4;
+    background-color: #1E1E1E;
+  }
+
+  td.line { padding: 0 8px; width: 100%; overflow: visible; }
+  td.line span.cmt { color: #6A9955; }
+  td.line span.con { color: #C586C0; }
+  td.line span.fun { color: #DCDCAA; }
+  td.line span.gen { color: #4EC9B0; font-style: italic; }
+  td.line span.idt { color: #4FC1FF; }
+  td.line span.kwd { color: #569CD6; }
+  td.line span.mod { color: #4EC9B0; }
+  td.line span.num { color: #B5CEA8; }
+  td.line span.opr { color: #4FC1FF; }
+  td.line span.str { color: #CE9178; }
+  td.line span.typ { color: #4EC9B0; }
+}
 
 td.line.highlighted {
   background-color: #fdf3d6;
@@ -65,8 +92,6 @@ td.line.highlighted {
 }
 
 a { color: inherit; }
-a.lib { color: maroon; text-decoration: underline; }
-a.imp { text-decoration: none; }
 
 .tooltip {
   position: relative;
