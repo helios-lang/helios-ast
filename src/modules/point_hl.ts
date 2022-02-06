@@ -2,7 +2,6 @@ import * as ast from '../ast/mod.ts';
 
 export default ast.module(
   [
-    ast.comment('Importing modules from the standard library'),
     new ast.ImportDeclarationGroup([
       new ast.ImportDeclaration(ast.path('core', 'list'), { external: true }),
       new ast.ImportDeclaration(ast.path('core', 'math'), { external: true }),

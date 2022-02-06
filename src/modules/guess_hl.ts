@@ -89,10 +89,11 @@ export default ast.module(
       'This function is responsible for getting the input provided from `stdin` and',
       'checking whether it is equal to, lower than or higher than the answer. If the',
       'value is not equal to the answer, a message is displayed and prompts for',
-      'another input again. Otherwise, it will congratulate the user that they won.',
+      'another input again. Otherwise, it will congratulate the user that they',
+      'guessed the right number.',
       '',
       'This function will terminate if the input provided is a negative integer. If',
-      'it fails to read from `stdin`, it will print an error and try prompt again.',
+      'it fails to read from `stdin`, it will print an error and prompt again.',
     ),
     new ast.FunctionDeclaration(
       ast.ident('play_rounds'),
@@ -231,7 +232,7 @@ export default ast.module(
               ]),
               new ast.CallExpression(ast.ident('play_rounds'), [
                 ast.ident('game'),
-                ast.literal(1),
+                ast.ident('round'),
               ]),
             ]),
           ],
@@ -244,10 +245,10 @@ export default ast.module(
     ast.docComment(
       'The entry point of the guessing game.',
       '',
-      'The main objective of the game is to try to guess the random number the',
-      'computer has chosen. You win if you guess the answer. Otherwise, the program',
-      'will provide feedback whether or not your lower or higher than the number it',
-      'chose. Keep trying until you guess the answer!',
+      'The main objective of the game is to guess the random number the computer has',
+      'chosen. You win if you guess the answer. Otherwise, the program will provide',
+      'feedback whether or not your lower or higher than the number it chose. Keep',
+      'trying until you guess the answer!',
     ),
     new ast.FunctionDeclaration(
       ast.ident('play'),

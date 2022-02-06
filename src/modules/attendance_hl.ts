@@ -9,8 +9,11 @@ export default ast.module(
   ],
   new ast.BlankLineNode(),
   [
+    ast.docComment(
+      'The student ID type, internally represented as a `String`.',
+    ),
     new ast.TypeAliasDeclaration(
-      ast.typeIdent('StudentId'),
+      ast.typeIdent('Student_Id'),
       ast.typeIdent('String'),
     ),
   ],
@@ -18,7 +21,7 @@ export default ast.module(
   [
     ast.docComment('A student to mark attendance for.'),
     new ast.SumTypeDeclaration(ast.typeIdent('Student'), [
-      ast.identWithType('id', ast.typeIdent('StudentId')),
+      ast.identWithType('id', ast.typeIdent('Student_Id')),
       ast.identWithType('full_name', ast.typeIdent('String')),
     ]),
   ],
@@ -26,8 +29,8 @@ export default ast.module(
   [
     ast.docComment('A mapping of student IDs and their attendance statuses.'),
     new ast.TypeAliasDeclaration(
-      ast.typeIdent('AttendanceRecord'),
-      ast.typeIdent('Map', ['StudentId', 'Student']),
+      ast.typeIdent('Attendance_Record'),
+      ast.typeIdent('Map', ['Student_Id', 'Student']),
     ),
   ],
   new ast.BlankLineNode(),
@@ -36,10 +39,10 @@ export default ast.module(
     new ast.FunctionDeclaration(
       ast.ident('mark_present'),
       [
-        ast.identWithType('record', ast.typeIdent('AttendanceRecord')),
+        ast.identWithType('record', ast.typeIdent('Attendance_Record')),
         ast.identWithType('student', ast.typeIdent('Student')),
       ],
-      ast.type(ast.typeIdent('AttendanceRecord')),
+      ast.type(ast.typeIdent('Attendance_Record')),
       new ast.BlockExpression([
         new ast.BinaryExpression(
           '|>',
