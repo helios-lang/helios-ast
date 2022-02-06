@@ -17,29 +17,28 @@ async function main() {
     },
   };
 
-  const stringified = ast.stringify(guessModule, options);
-  console.log(stringified, '\n');
+  const modules = {
+    main: mainModule,
+    point: pointModule,
+    attendance: attendanceModule,
+    guess: guessModule,
+  };
 
-  const htmlified = ast.htmlify(
-    {
-      main: mainModule,
-      point: pointModule,
-      attendance: attendanceModule,
-      guess: guessModule,
-    },
-    options,
-  );
+  for (const [filename, module] of Object.entries(modules)) {
+    console.log('--------', `${filename}.hl`, '--------\n');
+    const stringified = ast.stringify(module, options);
+    console.log(stringified, '\n');
+  }
 
   await Promise.all(
-    Object.entries(htmlified).map(async ([fileName, contents]) => {
-      const filePath = `./out/${fileName}.hl.html`;
-      await fs.ensureFile(filePath);
-      await Deno.writeTextFile(filePath, contents);
-      console.log(
-        'Successfully written file to',
-        await Deno.realPath(filePath),
-      );
-    }),
+    Object.entries(ast.htmlify(modules, options)).map(
+      async ([filename, contents]) => {
+        const path = `./out/${filename}.hl.html`;
+        await fs.ensureFile(path);
+        await Deno.writeTextFile(path, contents);
+        console.log('Successfully written file to', await Deno.realPath(path));
+      },
+    ),
   );
 }
 

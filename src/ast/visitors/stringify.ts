@@ -220,9 +220,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitImportDeclarationGroup(decl: ImportDeclarationGroup): StringifyResult {
-    return decl.imports.flatMap((node) =>
-      node.accept<StringifyResult, this>(this).concat(sigils.NL),
-    );
+    return this.toSeparatedList(decl.imports, sigils.NL, false);
   }
 
   visitBindingDeclaration(decl: BindingDeclaration): StringifyResult {
@@ -441,9 +439,13 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         this.symbols.functionInvokeBegin,
         ...expr.arguments_.flatMap((argument, index, array) => {
           const stringified = [
-            ...argument.identifier.accept<StringifyResult, this>(this),
-            this.symbols.labelledParameterAnnotation,
-            sigils.SP,
+            ...(argument.identifier
+              ? [
+                  ...argument.identifier.accept<StringifyResult, this>(this),
+                  this.symbols.labelledParameterAnnotation,
+                  sigils.SP,
+                ]
+              : []),
             ...argument.suffix.accept<StringifyResult, this>(this),
           ];
           if (index === array.length - 1) return stringified;
@@ -523,7 +525,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 
     if (expr.elseBody) {
       stringified.push(
-        !isThenBodyBlockExpr && sigils.SP,
+        !isThenBodyBlockExpr ? sigils.SP : sigils.CONT,
         this.keywords.ifElse,
         !isElseBodyBlockExpr && sigils.SP,
         ...expr.elseBody.accept<StringifyResult, this>(this),
@@ -597,12 +599,10 @@ export function stringify(
     processedModule = module;
   }
 
-  const processTopLevelNodes = (node: astCommon.TopLevelNode) => [
-    ...processIndentsForNode(node, options),
-    sigils.NL,
-  ];
-
-  return processedModule.flatMap(processTopLevelNodes).join('').trim();
+  return processedModule
+    .flatMap((node) => processIndentsForNode(node, options).concat(sigils.NL))
+    .join('')
+    .trim();
 }
 
 function processIndentsForNode(
@@ -627,13 +627,7 @@ function processIndentsForNode(
 
 function* processIndentsGenerator(tokens: string[], indentationCount: number) {
   let currIndent = 0;
-  let didRecentlyEmitEndToken = false;
-
   for (const token of tokens) {
-    if (didRecentlyEmitEndToken && token !== sigils.END) {
-      didRecentlyEmitEndToken = false;
-    }
-
     if (!token.startsWith('<!--')) {
       yield token;
     } else {
@@ -649,11 +643,6 @@ function* processIndentsGenerator(tokens: string[], indentationCount: number) {
           break;
         case sigils.END:
           currIndent = Math.max(0, currIndent - indentationCount);
-          if (!didRecentlyEmitEndToken) {
-            didRecentlyEmitEndToken = true;
-            yield sigils.NL;
-            yield indent(currIndent);
-          }
           break;
         case sigils.RESET:
           yield sigils.NL;

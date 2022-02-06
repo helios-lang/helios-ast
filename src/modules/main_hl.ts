@@ -6,15 +6,17 @@ export default ast.module(
     new ast.ImportDeclarationGroup([
       new ast.ImportDeclaration(ast.path('core', 'io'), { external: true }),
     ]),
+    new ast.BlankLineNode(),
     ast.comment('Importing local modules'),
     new ast.ImportDeclarationGroup([
       new ast.ImportDeclaration(ast.path('attendance')),
+      new ast.ImportDeclaration(ast.path('guess')),
       new ast.ImportDeclaration(ast.path('point'), {
         exposedIdentifiers: [{ identifier: 'Point' }],
       }),
-      new ast.ImportDeclaration(ast.path('guess')),
     ]),
   ],
+  new ast.BlankLineNode(),
   [
     ast.docComment('A type with two constructors.'),
     new ast.ProductTypeDeclaration(ast.typeIdent('Result', ['t', 'e']), [
@@ -26,6 +28,7 @@ export default ast.module(
       ]),
     ]),
   ],
+  new ast.BlankLineNode(),
   [
     ast.comment('This is the entry point of the program.'),
     new ast.FunctionDeclaration(
@@ -54,16 +57,16 @@ export default ast.module(
           ast.ident('p'),
           ast.inferredType(),
           new ast.ConstructorExpression(ast.ident('Point'), [
-            ast.labelledParam('x', ast.literal(1.0, true)),
-            ast.labelledParam('y', ast.literal(2.0, true)),
+            ast.optLabelledParam('x', ast.literal(1.0, true)),
+            ast.optLabelledParam('y', ast.literal(2.0, true)),
           ]),
         ),
         new ast.BindingDeclaration(
           ast.ident('q'),
           ast.inferredType(),
           new ast.ConstructorExpression(ast.ident('Point'), [
-            ast.labelledParam('x', ast.literal(2.0, true)),
-            ast.labelledParam('y', ast.literal(4.0, true)),
+            ast.optLabelledParam('x', ast.literal(2.0, true)),
+            ast.optLabelledParam('y', ast.literal(4.0, true)),
           ]),
         ),
         new ast.BindingDeclaration(

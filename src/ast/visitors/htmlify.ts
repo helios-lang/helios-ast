@@ -403,9 +403,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitImportDeclarationGroup(decl: ImportDeclarationGroup): HtmlifyResult {
-    return decl.imports.flatMap((node) =>
-      node.accept<HtmlifyResult, this>(this).concat(g.NL),
-    );
+    return this.toSeparatedList(decl.imports, g.NL, false);
   }
 
   visitBindingDeclaration(decl: BindingDeclaration): HtmlifyResult {
@@ -668,9 +666,13 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         this.symbolElement(this.symbols.functionInvokeBegin),
         ...expr.arguments_.flatMap((argument, index, array) => {
           const htmlified = [
-            s([HtmlClass.CONSTRUCTOR], t(argument.identifier.name)),
-            this.symbolElement(this.symbols.labelledParameterAnnotation),
-            g.SP,
+            ...(argument.identifier
+              ? [
+                  s([HtmlClass.CONSTRUCTOR], t(argument.identifier.name)),
+                  this.symbolElement(this.symbols.labelledParameterAnnotation),
+                  g.SP,
+                ]
+              : []),
             ...argument.suffix.accept<HtmlifyResult, this>(this),
           ];
           if (index === array.length - 1) return htmlified;
@@ -758,7 +760,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
     if (expr.elseBody) {
       htmlified.push(
-        !isThenBodyBlockExpr && g.SP,
+        !isThenBodyBlockExpr ? g.SP : g.CONT,
         this.keywordElement(this.keywords.ifElse),
         !isElseBodyBlockExpr && g.SP,
         ...expr.elseBody.accept<HtmlifyResult, this>(this),
@@ -851,7 +853,7 @@ function htmlifyModule(
   }
 
   const table = processedModule
-    .flatMap((node) => [...processNode(node, options, registry), sigils.NL])
+    .flatMap((node) => processNode(node, options, registry).concat(sigils.NL))
     .join('')
     .trim()
     .split('\n')
@@ -872,7 +874,7 @@ function htmlifyModule(
   return [
     `<!DOCTYPE html>`,
     `<html lang="en">`,
-    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="lang.css" /><title>${moduleName}.hl</title></head>`,
+    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${moduleName}.hl</title><link rel="stylesheet" href="lang.css" /><link rel="apple-touch-icon" href="favicon.png" /><link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico" /></head>`,
     `<body>`,
     `<table><tbody>`,
     table,
@@ -900,15 +902,10 @@ function htmlElementsToStrings(
   indentationCount: number,
 ) {
   let currIndent = 0;
-  let didRecentlyEmitEndToken = false;
   const processed: string[] = [];
   const htmlElements = Array.isArray(elements) ? elements : [elements];
 
   function visitHtmlElement(element: HtmlElement) {
-    if (didRecentlyEmitEndToken && element !== g.END) {
-      didRecentlyEmitEndToken = false;
-    }
-
     switch (element.tag) {
       case 'sigil': {
         if (element === g.SP) {
@@ -924,11 +921,9 @@ function htmlElementsToStrings(
         } else if (element === g.CONT) {
           processed.push(sigils.NL, indent(currIndent));
         } else if (element === g.END) {
+          // We won't do anything special with END tokens other than
+          // decrementing the current indentation level
           currIndent = Math.max(0, currIndent - indentationCount);
-          if (!didRecentlyEmitEndToken) {
-            didRecentlyEmitEndToken = true;
-            processed.push(sigils.NL, indent(currIndent));
-          }
         } else if (element === g.RESET) {
           currIndent = 0;
           processed.push(sigils.NL, indent(currIndent));

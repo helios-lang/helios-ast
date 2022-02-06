@@ -14,11 +14,23 @@ import { Declaration } from './decl.ts';
 import { AstVisitor } from './visitors/mod.ts';
 
 export type LabelledParameter = IdentifierWithSuffix<Expression>;
+export type OptionallyLabelledParameter = {
+  identifier?: IdentifierNode;
+  suffix: Expression;
+};
 
 export const labelledParam = (
   identifier: string,
   expr: Expression,
 ): LabelledParameter => ({ identifier: ident(identifier), suffix: expr });
+
+export const optLabelledParam = (
+  identifier: string | undefined,
+  expr: Expression,
+): OptionallyLabelledParameter => ({
+  identifier: identifier ? ident(identifier) : undefined,
+  suffix: expr,
+});
 
 export const literal = (
   value: boolean | number | string,
@@ -38,6 +50,10 @@ export const literal = (
       return LiteralExpression.String(String(value));
   }
 };
+
+export const interpolated = (
+  ...components: (string | Expression)[]
+): InterpolatedStringExpression => new InterpolatedStringExpression(components);
 
 export abstract class Expression extends AstNode {}
 
@@ -113,7 +129,7 @@ export class CallExpression extends Expression {
 export class ConstructorExpression extends Expression {
   constructor(
     readonly identifier: IdentifierNode | PathNode,
-    readonly arguments_: ReadonlyArray<LabelledParameter> = [],
+    readonly arguments_: ReadonlyArray<OptionallyLabelledParameter> = [],
   ) {
     super();
   }

@@ -11,14 +11,20 @@ export default ast.module(
       new ast.ImportDeclaration(ast.path('core', 'result'), { external: true }),
     ]),
   ],
+  new ast.BlankLineNode(),
   [
+    ast.docComment(
+      'A type that holds information about the game, such as the answer.',
+    ),
     new ast.SumTypeDeclaration(ast.typeIdent('Game'), [
       ast.identWithType('answer', ast.typeIdent('Int')),
       ast.identWithType('highest', ast.typeIdent('Int')),
       ast.identWithType('rounds', ast.typeIdent('Int')),
     ]),
   ],
+  new ast.BlankLineNode(),
   [
+    ast.docComment('The result of a game round.'),
     new ast.ProductTypeDeclaration(ast.typeIdent('Guess_Result'), [
       new ast.ConstructorDeclaration(ast.ident('Win'), []),
       new ast.ConstructorDeclaration(ast.ident('Too_Low'), []),
@@ -26,7 +32,16 @@ export default ast.module(
       new ast.ConstructorDeclaration(ast.ident('Quit'), []),
     ]),
   ],
+  new ast.BlankLineNode(),
   [
+    ast.docComment(
+      'A pure function that checks whether or not the provided number is equal to',
+      'the answer.',
+      '',
+      'This function will return `Too_Low` if `number` is lower than the answer, or',
+      '`Too_High` if the number is higher than the answer. However, if the value is',
+      'any negative integer, then `Quit` is returned.',
+    ),
     new ast.FunctionDeclaration(
       ast.ident('check_number'),
       [
@@ -36,11 +51,7 @@ export default ast.module(
       ast.type(ast.typeIdent('Guess_Result')),
       new ast.BlockExpression([
         new ast.IfExpression(
-          new ast.BinaryExpression(
-            '=',
-            ast.ident('number'),
-            new ast.UnaryExpression('-', ast.literal(1)),
-          ),
+          new ast.BinaryExpression('<', ast.ident('number'), ast.literal(0)),
           new ast.BlockExpression([
             new ast.ConstructorExpression(ast.ident('Quit')),
           ]),
@@ -70,94 +81,174 @@ export default ast.module(
       ]),
     ),
   ],
+  new ast.BlankLineNode(),
   [
+    ast.docComment(
+      'The main driver of the game.',
+      '',
+      'This function is responsible for getting the input provided from `stdin` and',
+      'checking whether it is equal to, lower than or higher than the answer. If the',
+      'value is not equal to the answer, a message is displayed and prompts for',
+      'another input again. Otherwise, it will congratulate the user that they won.',
+      '',
+      'This function will terminate if the input provided is a negative integer. If',
+      'it fails to read from `stdin`, it will print an error and try prompt again.',
+    ),
     new ast.FunctionDeclaration(
       ast.ident('play_rounds'),
       [
         ast.identWithType('game', ast.typeIdent('Game')),
         ast.identWithType('round', ast.typeIdent('Int')),
       ],
-      ast.type(ast.typeIdent('Guess_Result')),
+      ast.inferredType(),
       new ast.BlockExpression([
         new ast.CallExpression(ast.path('io', 'print'), [
-          new ast.InterpolatedStringExpression([
+          ast.interpolated(
             'Enter your guess (0 to ',
             new ast.DotExpression([ast.ident('game'), ast.ident('highest')]),
             '): ',
-          ]),
+          ),
         ]),
         new ast.BindingDeclaration(
           ast.ident('result'),
           ast.inferredType(),
-          new ast.BinaryExpression(
-            '|>',
-            new ast.CallExpression(ast.path('io', 'readline')),
+          new ast.BlockExpression([
             new ast.BinaryExpression(
               '|>',
-              new ast.CallExpression(ast.path('result', 'map'), [
-                new ast.DotExpression([ast.ident('string'), ast.ident('trim')]),
-              ]),
+              new ast.CallExpression(ast.path('io', 'readline')),
               new ast.BinaryExpression(
                 '|>',
                 new ast.CallExpression(ast.path('result', 'map'), [
-                  new ast.DotExpression([ast.ident('int'), ast.ident('parse')]),
+                  new ast.DotExpression([
+                    ast.ident('string'),
+                    ast.ident('trim'),
+                  ]),
                 ]),
-                new ast.CallExpression(ast.ident('check_number'), [
-                  ast.ident('game'),
-                  ast.ident('_'),
-                ]),
+                new ast.BinaryExpression(
+                  '|>',
+                  new ast.CallExpression(ast.path('result', 'map'), [
+                    new ast.DotExpression([
+                      ast.ident('int'),
+                      ast.ident('parse'),
+                    ]),
+                  ]),
+                  new ast.CallExpression(ast.ident('check_number'), [
+                    ast.ident('game'),
+                    ast.ident('_'),
+                  ]),
+                ),
               ),
             ),
-          ),
+          ]),
         ),
         new ast.CaseExpression(ast.ident('result'), [
           [
             new ast.ConstructorExpression(ast.ident('Okay'), [
-              ast.labelledParam(
-                'value',
+              ast.optLabelledParam(
+                undefined,
                 new ast.ConstructorExpression(ast.ident('Win')),
               ),
             ]),
-            ast.placeholder(),
+            new ast.BlockExpression([
+              new ast.CallExpression(ast.path('io', 'println'), [
+                ast.literal('You won!'),
+              ]),
+              new ast.CallExpression(ast.path('io', 'println'), [
+                ast.interpolated(
+                  'You made ',
+                  new ast.BinaryExpression(
+                    '+',
+                    ast.ident('round'),
+                    ast.literal(1),
+                  ),
+                  ' guess(es)',
+                ),
+              ]),
+            ]),
           ],
           [
             new ast.ConstructorExpression(ast.ident('Okay'), [
-              ast.labelledParam(
-                'value',
+              ast.optLabelledParam(
+                undefined,
                 new ast.ConstructorExpression(ast.ident('Too_Low')),
               ),
             ]),
-            ast.placeholder(),
+            new ast.BlockExpression([
+              new ast.CallExpression(ast.path('io', 'println'), [
+                ast.literal('Too low! Try again...'),
+              ]),
+              new ast.CallExpression(ast.ident('play_rounds'), [
+                ast.ident('game'),
+                new ast.BinaryExpression(
+                  '+',
+                  ast.ident('round'),
+                  ast.literal(1),
+                ),
+              ]),
+            ]),
           ],
           [
             new ast.ConstructorExpression(ast.ident('Okay'), [
-              ast.labelledParam(
-                'value',
+              ast.optLabelledParam(
+                undefined,
                 new ast.ConstructorExpression(ast.ident('Too_High')),
               ),
             ]),
-            ast.placeholder(),
+            new ast.BlockExpression([
+              new ast.CallExpression(ast.path('io', 'println'), [
+                ast.literal('Too high! Try again...'),
+              ]),
+              new ast.CallExpression(ast.ident('play_rounds'), [
+                ast.ident('game'),
+                new ast.BinaryExpression(
+                  '+',
+                  ast.ident('round'),
+                  ast.literal(1),
+                ),
+              ]),
+            ]),
           ],
           [
             new ast.ConstructorExpression(ast.ident('Okay'), [
-              ast.labelledParam(
-                'value',
+              ast.optLabelledParam(
+                undefined,
                 new ast.ConstructorExpression(ast.ident('Quit')),
               ),
             ]),
-            ast.placeholder(),
+            new ast.BlockExpression([
+              new ast.CallExpression(ast.path('io', 'println'), [
+                ast.literal('Goodbye!'),
+              ]),
+            ]),
           ],
           [
             new ast.ConstructorExpression(ast.ident('Error'), [
-              ast.labelledParam('reason', ast.placeholder()),
+              ast.optLabelledParam(undefined, ast.ident('error')),
             ]),
-            ast.placeholder(),
+            new ast.BlockExpression([
+              new ast.CallExpression(ast.path('io', 'eprintln'), [
+                ast.interpolated('Failed to get input: ', ast.ident('error')),
+              ]),
+              new ast.CallExpression(ast.ident('play_rounds'), [
+                ast.ident('game'),
+                ast.literal(1),
+              ]),
+            ]),
           ],
         ]),
       ]),
     ),
   ],
+  new ast.BlankLineNode(),
   [
+    ast.docComment(
+      'The entry point of the guessing game.',
+      '',
+      'The main objective of the game is to try to guess the random number the',
+      'computer has chosen. You win if you guess the answer. Otherwise, the program',
+      'will provide feedback whether or not your lower or higher than the number it',
+      'chose. Keep trying until you guess the answer!',
+    ),
     new ast.FunctionDeclaration(
       ast.ident('play'),
       [],
@@ -180,16 +271,12 @@ export default ast.module(
           ast.ident('game'),
           ast.inferredType(),
           new ast.ConstructorExpression(ast.ident('Game'), [
-            ast.labelledParam('answer', ast.ident('answer')),
-            ast.labelledParam('highest', ast.ident('highest')),
+            ast.optLabelledParam(undefined, ast.ident('answer')),
+            ast.optLabelledParam(undefined, ast.ident('highest')),
             ast.labelledParam('rounds', ast.literal(0)),
           ]),
         ),
-        new ast.BindingDeclaration(
-          ast.ident('_'),
-          ast.inferredType(),
-          new ast.CallExpression(ast.ident('play_rounds'), [ast.ident('game')]),
-        ),
+        new ast.CallExpression(ast.ident('play_rounds'), [ast.ident('game')]),
       ]),
     ),
   ],
