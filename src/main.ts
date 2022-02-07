@@ -2,10 +2,10 @@ import * as fs from 'https://deno.land/std@0.123.0/fs/mod.ts';
 
 import * as ast from './ast/mod.ts';
 
-import mainModule from './modules/main_hl.ts';
-import pointModule from './modules/point_hl.ts';
-import attendanceModule from './modules/attendance_hl.ts';
-import guessModule from './modules/guess_hl.ts';
+import mainModule from './modules/main.ts';
+import pointModule from './modules/point.ts';
+import attendanceModule from './modules/attendance.ts';
+import guessModule from './modules/guess.ts';
 
 async function main() {
   const options: ast.AstVisitorOptions = {
