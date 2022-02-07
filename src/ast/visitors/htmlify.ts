@@ -299,6 +299,42 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     ];
   }
 
+  visitExportedDeclarationNode(
+    node: astCommon.ExportedDeclarationNode,
+  ): HtmlifyResult {
+    const renameHtmlClasses = (() => {
+      const isTypeDeclaration = [
+        ProductTypeDeclaration,
+        SumTypeDeclaration,
+        TypeAliasDeclaration,
+      ].some((type) => node.declaration instanceof type);
+
+      if (isTypeDeclaration) {
+        return [HtmlClass.TYPE];
+      }
+
+      if (node.declaration instanceof FunctionDeclaration) {
+        return [HtmlClass.FUNCTION];
+      }
+
+      return [];
+    })();
+
+    return [
+      this.keywordElement(this.keywords.export),
+      ...(node.rename
+        ? [
+            g.SP,
+            this.keywordElement(this.keywords.exportAs),
+            g.SP,
+            s(renameHtmlClasses, t(node.rename)),
+          ]
+        : []),
+      g.SP,
+      ...node.declaration.accept<HtmlifyResult, this>(this),
+    ];
+  }
+
   visitImportDeclaration(decl: ImportDeclaration): HtmlifyResult {
     const importContents: HtmlifyResult = [
       this.keywordElement(this.keywords.import),
@@ -891,7 +927,7 @@ function htmlifyModule(
   return [
     `<!DOCTYPE html>`,
     `<html lang="en">`,
-    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${moduleName}.hl</title><link rel="stylesheet" href="lang.css" /><link rel="apple-touch-icon" href="favicon.png" /><link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico" /></head>`,
+    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${moduleName}.${FILE_EXTENSION}</title><link rel="stylesheet" href="lang.css" /><link rel="apple-touch-icon" href="favicon.png" /><link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico" /></head>`,
     `<body>`,
     `<table><tbody>`,
     table,

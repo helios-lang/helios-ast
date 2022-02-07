@@ -150,6 +150,19 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     ];
   }
 
+  visitExportedDeclarationNode(
+    node: astCommon.ExportedDeclarationNode,
+  ): StringifyResult {
+    return [
+      this.keywords.export,
+      ...(node.rename
+        ? [sigils.SP, this.keywords.exportAs, sigils.SP, node.rename]
+        : []),
+      sigils.SP,
+      ...node.declaration.accept<StringifyResult, this>(this),
+    ];
+  }
+
   visitImportDeclaration(decl: ImportDeclaration): StringifyResult {
     const importContents: StringifyResult = [this.keywords.import, sigils.SP];
 

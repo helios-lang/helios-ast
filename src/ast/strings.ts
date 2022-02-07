@@ -6,6 +6,8 @@ export const keyword = {
   caseBegin: 'case',
   caseBranchBegin: '->',
   caseOf: 'of',
+  export: 'export',
+  exportAs: 'as',
   function: 'define',
   ifBegin: 'if',
   ifElse: 'else',

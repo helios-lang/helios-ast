@@ -244,35 +244,44 @@ export default ast.module(
       'program will keep telling you whether or not your guess is lower or higher',
       'until you guess the right number.',
     ),
-    new ast.FunctionDeclaration(
-      ast.ident('play'),
-      [],
-      null,
-      new ast.BlockExpression([
-        new ast.BindingDeclaration(
-          ast.ident('highest'),
-          ast.inferredType(),
-          ast.literal(100),
-        ),
-        new ast.BindingDeclaration(
-          ast.ident('answer'),
-          ast.inferredType(),
-          new ast.CallExpression(ast.path('random', 'random_integer_between'), [
-            ast.literal(0),
-            new ast.BinaryExpression('+', ast.ident('highest'), ast.literal(1)),
-          ]),
-        ),
-        new ast.BindingDeclaration(
-          ast.ident('game'),
-          ast.inferredType(),
-          new ast.ConstructorExpression(ast.ident('Game'), [
-            ast.optLabelledParam(undefined, ast.ident('answer')),
-            ast.optLabelledParam(undefined, ast.ident('highest')),
-            ast.labelledParam('rounds', ast.literal(0)),
-          ]),
-        ),
-        new ast.CallExpression(ast.ident('play_rounds'), [ast.ident('game')]),
-      ]),
+    new ast.ExportedDeclarationNode(
+      new ast.FunctionDeclaration(
+        ast.ident('play'),
+        [],
+        null,
+        new ast.BlockExpression([
+          new ast.BindingDeclaration(
+            ast.ident('highest'),
+            ast.inferredType(),
+            ast.literal(100),
+          ),
+          new ast.BindingDeclaration(
+            ast.ident('answer'),
+            ast.inferredType(),
+            new ast.CallExpression(
+              ast.path('random', 'random_integer_between'),
+              [
+                ast.literal(0),
+                new ast.BinaryExpression(
+                  '+',
+                  ast.ident('highest'),
+                  ast.literal(1),
+                ),
+              ],
+            ),
+          ),
+          new ast.BindingDeclaration(
+            ast.ident('game'),
+            ast.inferredType(),
+            new ast.ConstructorExpression(ast.ident('Game'), [
+              ast.optLabelledParam(undefined, ast.ident('answer')),
+              ast.optLabelledParam(undefined, ast.ident('highest')),
+              ast.labelledParam('rounds', ast.literal(0)),
+            ]),
+          ),
+          new ast.CallExpression(ast.ident('play_rounds'), [ast.ident('game')]),
+        ]),
+      ),
     ),
   ],
 );

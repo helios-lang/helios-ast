@@ -121,6 +121,16 @@ export class GenericsListNode extends AstNode {
   }
 }
 
+export class ExportedDeclarationNode extends AstNode {
+  constructor(readonly declaration: Declaration, readonly rename?: string) {
+    super();
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitExportedDeclarationNode(this);
+  }
+}
+
 export type IdentifierWithSuffix<T> = { identifier: IdentifierNode; suffix: T };
 export type AlwaysTypedIdentifier = IdentifierWithSuffix<TypeNode>;
 export type MaybeTypedIdentifier = IdentifierWithSuffix<TypeNodeOrNull>;

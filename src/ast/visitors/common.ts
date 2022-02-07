@@ -69,6 +69,9 @@ export abstract class AstVisitor<R> {
   abstract visitTypeIdentifierNode(node: common.TypeIdentifierNode): R;
   abstract visitTypeNode(node: common.TypeNode): R;
   abstract visitGenericsListNode(node: common.GenericsListNode): R;
+  abstract visitExportedDeclarationNode(
+    node: common.ExportedDeclarationNode,
+  ): R;
 
   // --- DECLARATIONS ---
 
