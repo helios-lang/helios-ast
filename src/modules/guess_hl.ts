@@ -116,22 +116,16 @@ export default ast.module(
           new ast.BlockExpression([
             new ast.BinaryExpression(
               '|>',
-              new ast.CallExpression(ast.path('io', 'readline')),
+              new ast.CallExpression(ast.path('io', 'readline'), []),
               new ast.BinaryExpression(
                 '|>',
                 new ast.CallExpression(ast.path('result', 'map'), [
-                  new ast.DotExpression([
-                    ast.ident('string'),
-                    ast.ident('trim'),
-                  ]),
+                  new ast.CallExpression(ast.path('string', 'trim')),
                 ]),
                 new ast.BinaryExpression(
                   '|>',
                   new ast.CallExpression(ast.path('result', 'map'), [
-                    new ast.DotExpression([
-                      ast.ident('int'),
-                      ast.ident('parse'),
-                    ]),
+                    new ast.CallExpression(ast.path('int', 'parse')),
                   ]),
                   new ast.CallExpression(ast.ident('check_number'), [
                     ast.ident('game'),

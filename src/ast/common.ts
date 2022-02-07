@@ -133,6 +133,10 @@ export function capitalizeModuleName(string: string): string {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+export function isLastIndex(index: number, array: readonly any[]): boolean {
+  return index === array.length - 1;
+}
+
 export const placeholder = () => new PlaceHolderNode();
 
 export const module = (...nodes: (TopLevelNode | TopLevelNode[])[]): Module =>

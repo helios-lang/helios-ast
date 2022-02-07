@@ -116,7 +116,7 @@ export class ListExpression extends Expression {
 export class CallExpression extends Expression {
   constructor(
     readonly function_: IdentifierNode | PathNode,
-    readonly arguments_: ReadonlyArray<Expression> = [],
+    readonly arguments_: ReadonlyArray<Expression> | undefined = undefined,
   ) {
     super();
   }

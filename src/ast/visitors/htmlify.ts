@@ -138,7 +138,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   ): HtmlifyResult {
     return nodes.flatMap((node, index, array) => {
       const htmlified = node.accept<HtmlifyResult, this>(this);
-      if (index === array.length - 1) return htmlified;
+      if (astCommon.isLastIndex(index, array)) return htmlified;
       return addSpace
         ? htmlified.concat(separator, g.SP)
         : htmlified.concat(separator);
@@ -172,7 +172,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         );
       }
 
-      if (index === array.length - 1) return htmlified;
+      if (astCommon.isLastIndex(index, array)) return htmlified;
       return htmlified.concat(separator, g.SP);
     });
 
@@ -232,7 +232,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         this.symbolElement(this.symbols.genericsListBegin),
         ...node.generics.identifiers.flatMap((identifier, index, array) => {
           const htmlified = typeOrGeneric(identifier.name);
-          if (index === array.length - 1) return htmlified;
+          if (astCommon.isLastIndex(index, array)) return htmlified;
           return [
             htmlified,
             this.symbolElement(this.symbols.genericsListSeparator),
@@ -250,7 +250,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     if (child instanceof astCommon.PathNode) {
       const { components } = child;
       return components.flatMap((component, index, array) => {
-        if (index === array.length - 1)
+        if (astCommon.isLastIndex(index, array))
           return [s([HtmlClass.TYPE], t(component.name))];
         return [
           s([HtmlClass.MODULE], t(component.name)),
@@ -274,7 +274,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
           ),
         ),
       ];
-      if (index === array.length - 1) return htmlified;
+      if (astCommon.isLastIndex(index, array)) return htmlified;
       return htmlified.concat(this.symbolElement(this.symbols.pathSeparator));
     });
   }
@@ -305,21 +305,22 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       g.SP,
     ];
 
-    if (this.options.stringImports) {
-      let link: string;
-      const expectedFileName = decl.path.components.reduce(
-        (acc, curr, index) => {
-          if (index === 0) return curr.name;
-          return `${acc}-${curr.name}`;
-        },
-        '',
-      );
-      if (this.registry.includes(expectedFileName)) {
-        link = './' + expectedFileName + `.${FILE_EXTENSION}.html`;
-      } else {
-        link = '#';
-      }
+    let link: string;
+    const expectedFileName = decl.path.components
+      .map((component) =>
+        this.options.uppercaseModules
+          ? astCommon.capitalizeModuleName(component.name)
+          : component.name,
+      )
+      .join('-');
 
+    if (this.registry.includes(expectedFileName)) {
+      link = './' + expectedFileName + `.${FILE_EXTENSION}.html`;
+    } else {
+      link = '#';
+    }
+
+    if (this.options.stringImports) {
       importContents.push(
         s(
           [HtmlClass.STRING],
@@ -328,8 +329,13 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             a(link, [
               Boolean(decl.external) && t(this.symbols.importExternal),
               ...decl.path.components.flatMap((component, index, array) => {
-                const htmlified = t(component.name);
-                if (index === array.length - 1) return htmlified;
+                const isLastComponent = astCommon.isLastIndex(index, array);
+                const htmlified = t(
+                  isLastComponent && this.options.uppercaseModules
+                    ? astCommon.capitalizeModuleName(component.name)
+                    : component.name,
+                );
+                if (isLastComponent) return htmlified;
                 return [htmlified, t('/')];
               }),
               Boolean(this.options.importWithFileExtension) &&
@@ -340,19 +346,26 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         ),
       );
     } else {
+      if (decl.external) {
+        importContents.push(this.keywordElement('library'), g.SP);
+      }
+
       importContents.push(
-        ...decl.path.components.flatMap((components, index, array) => {
+        ...decl.path.components.flatMap((component, index, array) => {
           const htmlified = [
             s(
               [HtmlClass.MODULE],
-              t(
-                this.options.uppercaseModules
-                  ? astCommon.capitalizeModuleName(components.name)
-                  : components.name,
+              a(
+                link,
+                t(
+                  this.options.uppercaseModules
+                    ? astCommon.capitalizeModuleName(component.name)
+                    : component.name,
+                ),
               ),
             ),
           ];
-          if (index === array.length - 1) return htmlified;
+          if (astCommon.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(t(this.symbols.pathSeparator));
         }),
       );
@@ -390,7 +403,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             );
           }
 
-          if (index === array.length - 1) return stringified;
+          if (astCommon.isLastIndex(index, array)) return stringified;
           return stringified.concat(
             this.symbolElement(this.symbols.importExposedIdentifiersSeparator),
             g.SP,
@@ -468,7 +481,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             ...suffix.accept<HtmlifyResult, this>(this),
           ];
 
-          if (index === array.length - 1) return htmlified;
+          if (astCommon.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(
             this.symbolElement(this.symbols.constructorParameterSeparator),
             g.SP,
@@ -573,14 +586,15 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         const strings: string[] = [];
         if (index === 0) strings.push(this.symbols.stringBegin);
         strings.push(component);
-        if (index === array.length - 1) strings.push(this.symbols.stringEnd);
+        if (astCommon.isLastIndex(index, array))
+          strings.push(this.symbols.stringEnd);
         return s([HtmlClass.STRING], t(strings.join('')));
       } else {
         return [
           this.keywordElement(this.symbols.stringInterpolationBegin),
           ...component.accept<HtmlifyResult, this>(this),
           this.keywordElement(this.symbols.stringInterpolationEnd),
-          index === array.length - 1 &&
+          astCommon.isLastIndex(index, array) &&
             s([HtmlClass.STRING], t(this.symbols.stringEnd)),
         ];
       }
@@ -607,59 +621,62 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitCallExpression(expr: CallExpression): HtmlifyResult {
-    const htmlifiedFunctionIdentifier: HtmlifyResult = [];
+    const htmlified: HtmlifyResult = [];
 
     if (expr.function_ instanceof astCommon.IdentifierNode) {
-      htmlifiedFunctionIdentifier.push(
-        s([HtmlClass.FUNCTION], t(expr.function_.name)),
-      );
+      htmlified.push(s([HtmlClass.FUNCTION], t(expr.function_.name)));
     } else {
       const components = expr.function_.components;
       const allButLast = components.slice(0, -1);
-      const last = components.at(-1);
+      const lastComponent = components.at(-1);
 
-      htmlifiedFunctionIdentifier.push(
+      htmlified.push(
         ...new astCommon.PathNode(allButLast).accept<HtmlifyResult, this>(this),
       );
 
-      if (last) {
-        htmlifiedFunctionIdentifier.push(
+      if (lastComponent) {
+        htmlified.push(
           this.symbolElement(this.symbols.pathSeparator),
-          s([HtmlClass.FUNCTION], t(last.name)),
+          s([HtmlClass.FUNCTION], t(lastComponent.name)),
         );
       }
     }
 
-    return [
-      ...htmlifiedFunctionIdentifier,
-      this.symbolElement(this.symbols.functionInvokeBegin),
-      ...this.toSeparatedList(
-        expr.arguments_,
-        this.symbolElement(this.symbols.functionParameterSeparator),
-      ),
-      this.symbolElement(this.symbols.functionInvokeEnd),
-    ];
+    if (expr.arguments_) {
+      htmlified.push(
+        this.symbolElement(this.symbols.functionInvokeBegin),
+        ...this.toSeparatedList(
+          expr.arguments_,
+          this.symbolElement(this.symbols.functionParameterSeparator),
+        ),
+        this.symbolElement(this.symbols.functionInvokeEnd),
+      );
+    }
+
+    return htmlified;
   }
 
   visitConstructorExpression(expr: ConstructorExpression): HtmlifyResult {
-    const identifier: HtmlifyResult = [];
+    const htmlified: HtmlifyResult = [];
     const { identifier: givenIdentifier } = expr;
+
     if (givenIdentifier instanceof astCommon.IdentifierNode) {
-      identifier.push(s([HtmlClass.CONSTRUCTOR], t(givenIdentifier.name)));
+      htmlified.push(s([HtmlClass.CONSTRUCTOR], t(givenIdentifier.name)));
     } else {
       givenIdentifier.components.forEach((component, index, array) => {
-        if (index === array.length - 1) {
-          identifier.push(s([HtmlClass.CONSTRUCTOR], t(component.name)));
+        if (astCommon.isLastIndex(index, array)) {
+          htmlified.push(s([HtmlClass.CONSTRUCTOR], t(component.name)));
         } else {
-          identifier.push(
-            s([HtmlClass.MODULE], t(component.name)),
+          const componentName = this.options.uppercaseModules
+            ? astCommon.capitalizeModuleName(component.name)
+            : component.name;
+          htmlified.push(
+            s([HtmlClass.MODULE], t(componentName)),
             this.symbolElement(this.symbols.pathSeparator),
           );
         }
       });
     }
-
-    const htmlified: HtmlifyResult = [...identifier];
 
     if (expr.arguments_.length > 0) {
       htmlified.push(
@@ -675,7 +692,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
               : []),
             ...argument.suffix.accept<HtmlifyResult, this>(this),
           ];
-          if (index === array.length - 1) return htmlified;
+          if (astCommon.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(
             this.symbolElement(this.symbols.functionParameterSeparator),
             g.SP,
@@ -794,7 +811,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             ...expression.accept<HtmlifyResult, this>(this),
           ];
 
-          if (index === array.length - 1) return htmlified;
+          if (astCommon.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(g.CONT);
         }),
         g.END,

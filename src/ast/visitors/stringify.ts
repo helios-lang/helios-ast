@@ -40,7 +40,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   ): StringifyResult {
     return nodes.flatMap((node, index, array) => {
       const stringified = node.accept<StringifyResult, this>(this);
-      if (index === array.length - 1) return stringified;
+      if (astCommon.isLastIndex(index, array)) return stringified;
       return addSpace
         ? stringified.concat(separator, sigils.SP)
         : stringified.concat(separator);
@@ -62,7 +62,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         );
       }
 
-      if (index === array.length - 1) return stringified;
+      if (astCommon.isLastIndex(index, array)) return stringified;
       return stringified.concat(separator, sigils.SP);
     });
   }
@@ -120,7 +120,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
           ? astCommon.capitalizeModuleName(component.name)
           : component.name,
       ];
-      if (index === array.length - 1) return stringified;
+      if (astCommon.isLastIndex(index, array)) return stringified;
       return stringified.concat(this.symbols.pathSeparator);
     });
   }
@@ -157,25 +157,29 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       importContents.push(
         this.symbols.stringBegin,
         Boolean(decl.external) && this.symbols.importExternal,
-        ...this.toSeparatedList(decl.path.components, '/', false),
+        ...decl.path.components.flatMap((component, index, array) => {
+          const isLastComponent = astCommon.isLastIndex(index, array);
+          const stringified =
+            isLastComponent && this.options.uppercaseModules
+              ? astCommon.capitalizeModuleName(component.name)
+              : component.name;
+          if (isLastComponent) return stringified;
+          return [stringified, '/'];
+        }),
         Boolean(this.options.importWithFileExtension) && `.${FILE_EXTENSION}`,
         this.symbols.stringEnd,
       );
     } else {
+      if (decl.external) importContents.push('library', sigils.SP);
       importContents.push(
         ...decl.path.components.flatMap((component, index, array) => {
-          const stringified: StringifyResult = component.accept(this);
+          const stringified = [
+            this.options.uppercaseModules
+              ? astCommon.capitalizeModuleName(component.name)
+              : component.name,
+          ];
 
-          if (this.options.uppercaseModules) {
-            for (let i = 0; i < stringified.length; i++) {
-              const identifier = stringified[i];
-              if (typeof identifier === 'string') {
-                stringified[i] = astCommon.capitalizeModuleName(identifier);
-              }
-            }
-          }
-
-          if (index === array.length - 1) return stringified;
+          if (astCommon.isLastIndex(index, array)) return stringified;
           return stringified.concat(this.symbols.pathSeparator);
         }),
       );
@@ -207,7 +211,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             );
           }
 
-          if (index === array.length - 1) return stringified;
+          if (astCommon.isLastIndex(index, array)) return stringified;
           return stringified.concat(
             this.symbols.importExposedIdentifiersSeparator,
             sigils.SP,
@@ -394,61 +398,74 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitCallExpression(expr: CallExpression): StringifyResult {
-    const stringifiedFunctionIdentifier: StringifyResult = [];
+    const stringified: StringifyResult = [];
 
     if (expr.function_ instanceof astCommon.IdentifierNode) {
-      stringifiedFunctionIdentifier.push(expr.function_.name);
+      stringified.push(expr.function_.name);
     } else {
       const components = expr.function_.components;
       const allButLast = components.slice(0, -1);
       const last = components.at(-1);
 
-      stringifiedFunctionIdentifier.push(
+      stringified.push(
         ...new astCommon.PathNode(allButLast).accept<StringifyResult, this>(
           this,
         ),
       );
 
       if (last) {
-        stringifiedFunctionIdentifier.push(
-          this.symbols.pathSeparator,
-          last.name,
-        );
+        stringified.push(this.symbols.pathSeparator, last.name);
       }
     }
 
-    return [
-      ...stringifiedFunctionIdentifier,
-      this.symbols.functionInvokeBegin,
-      ...this.toSeparatedList(
-        expr.arguments_,
-        this.symbols.functionParameterSeparator,
-      ),
-      this.symbols.functionInvokeEnd,
-    ];
+    if (expr.arguments_) {
+      stringified.push(
+        this.symbols.functionInvokeBegin,
+        ...this.toSeparatedList(
+          expr.arguments_,
+          this.symbols.functionParameterSeparator,
+        ),
+        this.symbols.functionInvokeEnd,
+      );
+    }
+
+    return stringified;
   }
 
   visitConstructorExpression(expr: ConstructorExpression): StringifyResult {
-    const stringified: StringifyResult = expr.identifier.accept<
-      StringifyResult,
-      this
-    >(this);
+    const stringified: StringifyResult = [];
+    const { identifier: givenIdentifier } = expr;
+
+    if (givenIdentifier instanceof astCommon.IdentifierNode) {
+      stringified.push(givenIdentifier.name);
+    } else {
+      givenIdentifier.components.forEach((component, index, array) => {
+        if (astCommon.isLastIndex(index, array)) {
+          stringified.push(component.name);
+        } else {
+          const componentName = this.options.uppercaseModules
+            ? astCommon.capitalizeModuleName(component.name)
+            : component.name;
+          stringified.push(componentName, this.symbols.pathSeparator);
+        }
+      });
+    }
 
     if (expr.arguments_.length > 0) {
       stringified.push(
         this.symbols.functionInvokeBegin,
         ...expr.arguments_.flatMap((argument, index, array) => {
-          const stringified = [
+          const stringified: StringifyResult = [
             ...(argument.identifier
               ? [
-                  ...argument.identifier.accept<StringifyResult, this>(this),
+                  argument.identifier.name,
                   this.symbols.labelledParameterAnnotation,
                   sigils.SP,
                 ]
               : []),
             ...argument.suffix.accept<StringifyResult, this>(this),
           ];
-          if (index === array.length - 1) return stringified;
+          if (astCommon.isLastIndex(index, array)) return stringified;
           return stringified.concat(
             this.symbols.functionParameterSeparator,
             sigils.SP,
@@ -467,7 +484,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         typeof component === 'string'
           ? component
           : component.accept<StringifyResult, this>(this);
-      if (index === array.length - 1) return stringified;
+      if (astCommon.isLastIndex(index, array)) return stringified;
       return stringified.concat(this.symbols.recordPathSeparator);
     });
   }
@@ -559,7 +576,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             ...expression.accept<StringifyResult, this>(this),
           ];
 
-          if (index === array.length - 1) return stringified;
+          if (astCommon.isLastIndex(index, array)) return stringified;
           return stringified.concat(sigils.CONT);
         }),
         sigils.END,

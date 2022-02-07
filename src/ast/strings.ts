@@ -1,4 +1,4 @@
-export const FILE_EXTENSION = 'hl';
+export const FILE_EXTENSION = 'he';
 
 export const keyword = {
   bindingImmutable: 'let',

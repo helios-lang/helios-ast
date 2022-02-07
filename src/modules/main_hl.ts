@@ -11,9 +11,7 @@ export default ast.module(
     new ast.ImportDeclarationGroup([
       new ast.ImportDeclaration(ast.path('attendance')),
       new ast.ImportDeclaration(ast.path('guess')),
-      new ast.ImportDeclaration(ast.path('point'), {
-        exposedIdentifiers: [{ identifier: 'Point' }],
-      }),
+      new ast.ImportDeclaration(ast.path('point')),
     ]),
   ],
   new ast.BlankLineNode(),
@@ -47,7 +45,7 @@ export default ast.module(
             'Hello, my name is ',
             ast.ident('name'),
             ' and I am ',
-            new ast.BinaryExpression('-', ast.literal(2), ast.literal(1)),
+            new ast.BinaryExpression('-', ast.literal(12), ast.literal(10)),
             ' years old!',
           ]),
         ]),
@@ -56,7 +54,7 @@ export default ast.module(
         new ast.BindingDeclaration(
           ast.ident('p'),
           ast.inferredType(),
-          new ast.ConstructorExpression(ast.ident('Point'), [
+          new ast.ConstructorExpression(ast.path('point', 'Point'), [
             ast.optLabelledParam('x', ast.literal(1.0, true)),
             ast.optLabelledParam('y', ast.literal(2.0, true)),
           ]),
@@ -64,7 +62,7 @@ export default ast.module(
         new ast.BindingDeclaration(
           ast.ident('q'),
           ast.inferredType(),
-          new ast.ConstructorExpression(ast.ident('Point'), [
+          new ast.ConstructorExpression(ast.path('point', 'Point'), [
             ast.optLabelledParam('x', ast.literal(2.0, true)),
             ast.optLabelledParam('y', ast.literal(4.0, true)),
           ]),

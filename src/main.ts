@@ -10,22 +10,23 @@ import guessModule from './modules/guess_hl.ts';
 async function main() {
   const options: ast.AstVisitorOptions = {
     stringImports: true,
-    // importWithFileExtension: true,
+    importWithFileExtension: true,
     preferTrailingSeparators: true,
+    uppercaseModules: true,
     symbols: {
       // pathSeparator: '::',
     },
   };
 
   const modules = {
-    main: mainModule,
-    point: pointModule,
-    attendance: attendanceModule,
-    guess: guessModule,
+    Main: mainModule,
+    Attendance: attendanceModule,
+    Guess: guessModule,
+    Point: pointModule,
   };
 
   for (const [filename, module] of Object.entries(modules)) {
-    console.log('--------', `${filename}.hl`, '--------\n');
+    console.log('--------', `${filename}.${ast.FILE_EXTENSION}`, '--------\n');
     const stringified = ast.stringify(module, options);
     console.log(stringified, '\n');
   }
@@ -33,7 +34,8 @@ async function main() {
   await Promise.all(
     Object.entries(ast.htmlify(modules, options)).map(
       async ([filename, contents]) => {
-        const path = `./out/${filename}.hl.html`;
+        const processedFilename = filename.split('.')[0];
+        const path = `./out/${processedFilename}.${ast.FILE_EXTENSION}.html`;
         await fs.ensureFile(path);
         await Deno.writeTextFile(path, contents);
         console.log('Successfully written file to', await Deno.realPath(path));
