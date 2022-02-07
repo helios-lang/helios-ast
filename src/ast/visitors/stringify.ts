@@ -156,7 +156,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     if (this.options.stringImports) {
       importContents.push(
         this.symbols.stringBegin,
-        Boolean(decl.external) && 'lib:',
+        Boolean(decl.external) && this.symbols.importExternal,
         ...this.toSeparatedList(decl.path.components, '/', false),
         Boolean(this.options.importWithFileExtension) && `.${FILE_EXTENSION}`,
         this.symbols.stringEnd,

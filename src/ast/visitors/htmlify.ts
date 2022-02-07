@@ -326,7 +326,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
           [
             t(this.symbols.stringBegin),
             a(link, [
-              Boolean(decl.external) && t('lib:'),
+              Boolean(decl.external) && t(this.symbols.importExternal),
               ...decl.path.components.flatMap((component, index, array) => {
                 const htmlified = t(component.name);
                 if (index === array.length - 1) return htmlified;

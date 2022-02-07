@@ -38,6 +38,7 @@ export const symbol = {
   genericsListBegin: '(',
   genericsListEnd: ')',
   genericsListSeparator: ',',
+  importExternal: 'lib:',
   importExposedIdentifiersSeparator: ',',
   labelledParameterAnnotation: ':',
   lambdaBegin: '->',

@@ -245,10 +245,10 @@ export default ast.module(
     ast.docComment(
       'The entry point of the guessing game.',
       '',
-      'The main objective of the game is to guess the random number the computer has',
-      'chosen. You win if you guess the answer. Otherwise, the program will provide',
-      'feedback whether or not your lower or higher than the number it chose. Keep',
-      'trying until you guess the answer!',
+      'The main objective of this simple game is to guess the random number the',
+      'computer has chosen. You win the game if you guess the number. Otherwise, the',
+      'program will keep telling you whether or not your guess is lower or higher',
+      'until you guess the right number.',
     ),
     new ast.FunctionDeclaration(
       ast.ident('play'),
