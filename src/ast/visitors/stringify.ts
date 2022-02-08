@@ -1,6 +1,8 @@
+import { AstVisitor, AstVisitorOptions } from './common.ts';
+
+import * as ast from '../common.ts';
 import * as sigils from '../sigils.ts';
-import * as astCommon from '../common.ts';
-import * as visitorCommon from './common.ts';
+import * as utils from '../utils.ts';
 import { FILE_EXTENSION } from '../strings.ts';
 
 import {
@@ -32,15 +34,15 @@ import {
 
 export type StringifyResult = (string | false)[];
 
-export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> {
+export class StringifyVisitor extends AstVisitor<StringifyResult> {
   private toSeparatedList(
-    nodes: ReadonlyArray<astCommon.AstNode>,
+    nodes: ReadonlyArray<ast.AstNode>,
     separator = this.symbols.listSeparator,
     addSpace = true,
   ): StringifyResult {
     return nodes.flatMap((node, index, array) => {
       const stringified = node.accept<StringifyResult, this>(this);
-      if (astCommon.isLastIndex(index, array)) return stringified;
+      if (utils.isLastIndex(index, array)) return stringified;
       return addSpace
         ? stringified.concat(separator, sigils.SP)
         : stringified.concat(separator);
@@ -48,7 +50,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   private toParameterList(
-    parameters: ReadonlyArray<astCommon.MaybeTypedIdentifier>,
+    parameters: ReadonlyArray<ast.MaybeTypedIdentifier>,
     separator = this.symbols.functionParameterSeparator,
   ): StringifyResult {
     return parameters.flatMap(({ identifier, suffix }, index, array) => {
@@ -62,16 +64,16 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         );
       }
 
-      if (astCommon.isLastIndex(index, array)) return stringified;
+      if (utils.isLastIndex(index, array)) return stringified;
       return stringified.concat(separator, sigils.SP);
     });
   }
 
-  visitBlankLineNode(_: astCommon.BlankLineNode): StringifyResult {
+  visitBlankLineNode(_: ast.BlankLineNode): StringifyResult {
     return [];
   }
 
-  visitCommentNode(node: astCommon.CommentNode): StringifyResult {
+  visitCommentNode(node: ast.CommentNode): StringifyResult {
     return node.comment.split('\n').flatMap((content, index, array) => {
       const commentBegin = node.isDocComment
         ? this.symbols.docCommentBegin
@@ -84,15 +86,15 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     });
   }
 
-  visitPlaceholderNode(_: astCommon.PlaceHolderNode): StringifyResult {
+  visitPlaceholderNode(_: ast.PlaceHolderNode): StringifyResult {
     return [this.symbols.placeholder];
   }
 
-  visitIdentifierNode(node: astCommon.IdentifierNode): StringifyResult {
+  visitIdentifierNode(node: ast.IdentifierNode): StringifyResult {
     return [node.name];
   }
 
-  visitTypeIdentifierNode(node: astCommon.TypeIdentifierNode): StringifyResult {
+  visitTypeIdentifierNode(node: ast.TypeIdentifierNode): StringifyResult {
     const stringified: StringifyResult = [node.name];
 
     if (node.generics) {
@@ -109,24 +111,24 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     return stringified;
   }
 
-  visitTypeNode(node: astCommon.TypeNode): StringifyResult {
+  visitTypeNode(node: ast.TypeNode): StringifyResult {
     return node.child.accept(this);
   }
 
-  visitPathNode(node: astCommon.PathNode): StringifyResult {
+  visitPathNode(node: ast.PathNode): StringifyResult {
     return node.components.flatMap((component, index, array) => {
       const stringified: StringifyResult = [
         this.options.uppercaseModules
-          ? astCommon.capitalizeModuleName(component.name)
+          ? utils.capitalizeModuleName(component.name)
           : component.name,
       ];
-      if (astCommon.isLastIndex(index, array)) return stringified;
+      if (utils.isLastIndex(index, array)) return stringified;
       return stringified.concat(this.symbols.pathSeparator);
     });
   }
 
   visitAnonymousConstructorNode(
-    node: astCommon.AnonymousConstructorNode,
+    node: ast.AnonymousConstructorNode,
   ): StringifyResult {
     return [
       this.symbols.anonymousConstructorTag,
@@ -139,7 +141,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     ];
   }
 
-  visitGenericsListNode(node: astCommon.GenericsListNode): StringifyResult {
+  visitGenericsListNode(node: ast.GenericsListNode): StringifyResult {
     return [
       this.symbols.genericsListBegin,
       ...this.toSeparatedList(
@@ -151,7 +153,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   }
 
   visitExportedDeclarationNode(
-    node: astCommon.ExportedDeclarationNode,
+    node: ast.ExportedDeclarationNode,
   ): StringifyResult {
     return [
       this.keywords.export,
@@ -171,10 +173,10 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         this.symbols.stringBegin,
         Boolean(decl.external) && this.symbols.importExternal,
         ...decl.path.components.flatMap((component, index, array) => {
-          const isLastComponent = astCommon.isLastIndex(index, array);
+          const isLastComponent = utils.isLastIndex(index, array);
           const stringified =
             isLastComponent && this.options.uppercaseModules
-              ? astCommon.capitalizeModuleName(component.name)
+              ? utils.capitalizeModuleName(component.name)
               : component.name;
           if (isLastComponent) return stringified;
           return [stringified, '/'];
@@ -188,11 +190,11 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         ...decl.path.components.flatMap((component, index, array) => {
           const stringified = [
             this.options.uppercaseModules
-              ? astCommon.capitalizeModuleName(component.name)
+              ? utils.capitalizeModuleName(component.name)
               : component.name,
           ];
 
-          if (astCommon.isLastIndex(index, array)) return stringified;
+          if (utils.isLastIndex(index, array)) return stringified;
           return stringified.concat(this.symbols.pathSeparator);
         }),
       );
@@ -224,7 +226,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             );
           }
 
-          if (astCommon.isLastIndex(index, array)) return stringified;
+          if (utils.isLastIndex(index, array)) return stringified;
           return stringified.concat(
             this.symbols.importExposedIdentifiersSeparator,
             sigils.SP,
@@ -313,7 +315,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       this.symbols.constructorDeclarationBegin,
       sigils.SP,
       ...new ConstructorDeclaration(
-        astCommon.ident(decl.identifier.name),
+        ast.ident(decl.identifier.name),
         decl.fields,
       ).accept<StringifyResult, this>(this),
       sigils.END,
@@ -413,7 +415,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
   visitCallExpression(expr: CallExpression): StringifyResult {
     const stringified: StringifyResult = [];
 
-    if (expr.function_ instanceof astCommon.IdentifierNode) {
+    if (expr.function_ instanceof ast.IdentifierNode) {
       stringified.push(expr.function_.name);
     } else {
       const components = expr.function_.components;
@@ -421,9 +423,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
       const last = components.at(-1);
 
       stringified.push(
-        ...new astCommon.PathNode(allButLast).accept<StringifyResult, this>(
-          this,
-        ),
+        ...new ast.PathNode(allButLast).accept<StringifyResult, this>(this),
       );
 
       if (last) {
@@ -449,15 +449,15 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     const stringified: StringifyResult = [];
     const { identifier: givenIdentifier } = expr;
 
-    if (givenIdentifier instanceof astCommon.IdentifierNode) {
+    if (givenIdentifier instanceof ast.IdentifierNode) {
       stringified.push(givenIdentifier.name);
     } else {
       givenIdentifier.components.forEach((component, index, array) => {
-        if (astCommon.isLastIndex(index, array)) {
+        if (utils.isLastIndex(index, array)) {
           stringified.push(component.name);
         } else {
           const componentName = this.options.uppercaseModules
-            ? astCommon.capitalizeModuleName(component.name)
+            ? utils.capitalizeModuleName(component.name)
             : component.name;
           stringified.push(componentName, this.symbols.pathSeparator);
         }
@@ -478,7 +478,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
               : []),
             ...argument.suffix.accept<StringifyResult, this>(this),
           ];
-          if (astCommon.isLastIndex(index, array)) return stringified;
+          if (utils.isLastIndex(index, array)) return stringified;
           return stringified.concat(
             this.symbols.functionParameterSeparator,
             sigils.SP,
@@ -497,7 +497,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
         typeof component === 'string'
           ? component
           : component.accept<StringifyResult, this>(this);
-      if (astCommon.isLastIndex(index, array)) return stringified;
+      if (utils.isLastIndex(index, array)) return stringified;
       return stringified.concat(this.symbols.recordPathSeparator);
     });
   }
@@ -589,7 +589,7 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
             ...expression.accept<StringifyResult, this>(this),
           ];
 
-          if (astCommon.isLastIndex(index, array)) return stringified;
+          if (utils.isLastIndex(index, array)) return stringified;
           return stringified.concat(sigils.CONT);
         }),
         sigils.END,
@@ -597,11 +597,11 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
     } else {
       stringified.push(
         sigils.BEGIN,
-        ...astCommon.placeholder().accept<StringifyResult, this>(this),
+        ...ast.placeholder().accept<StringifyResult, this>(this),
         sigils.SP,
         this.keywords.caseBranchBegin,
         sigils.SP,
-        ...astCommon.placeholder().accept<StringifyResult, this>(this),
+        ...ast.placeholder().accept<StringifyResult, this>(this),
         sigils.END,
       );
     }
@@ -613,34 +613,34 @@ export class StringifyVisitor extends visitorCommon.AstVisitor<StringifyResult> 
 // -----------------------------------------------------------------------------
 
 // deno-lint-ignore no-empty-interface
-interface StringifyOptions extends visitorCommon.AstVisitorOptions {}
+interface StringifyOptions extends AstVisitorOptions {}
 
 export function stringify(
-  module: astCommon.Module,
+  module: ast.Module,
   options: StringifyOptions = {},
 ): string {
   return module
     .map((nodes) => {
       return nodes.flatMap((node, index, array) => {
-        if (options.stripComments && node instanceof astCommon.CommentNode) {
+        if (options.stripComments && node instanceof ast.CommentNode) {
           return [];
         }
 
         const processed = processTopLevelNode(node, options);
-        if (astCommon.isLastIndex(index, array)) return processed;
+        if (utils.isLastIndex(index, array)) return processed;
         return processed.concat(sigils.NL);
       });
     })
     .map((tokenBlock) => tokenBlock.join(''))
     .flatMap((block, index, array) => {
-      if (astCommon.isLastIndex(index, array)) return block;
+      if (utils.isLastIndex(index, array)) return block;
       return [block, sigils.NL, sigils.NL];
     })
     .join('');
 }
 
 function processTopLevelNode(
-  node: astCommon.TopLevelNode,
+  node: ast.TopLevelNode,
   options: StringifyOptions,
 ): string[] {
   const visitor = new StringifyVisitor(options);

@@ -1,8 +1,10 @@
 import { escapeHtml } from 'https://deno.land/x/escape@1.4.2/mod.ts';
 
+import { AstVisitor, AstVisitorOptions } from './common.ts';
+
+import * as ast from '../common.ts';
 import * as sigils from '../sigils.ts';
-import * as astCommon from '../common.ts';
-import * as visitorCommon from './common.ts';
+import * as utils from '../utils.ts';
 import { FILE_EXTENSION } from '../strings.ts';
 
 import {
@@ -115,7 +117,7 @@ const s = (
   };
 };
 
-export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
+export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
   constructor(
     readonly options: HtmlifyOptions,
     readonly registry: HtmlifyFileRegistry,
@@ -132,13 +134,13 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   private toSeparatedList(
-    nodes: ReadonlyArray<astCommon.AstNode>,
+    nodes: ReadonlyArray<ast.AstNode>,
     separator = s([HtmlClass.SYMBOL], t(this.symbols.listSeparator)),
     addSpace = true,
   ): HtmlifyResult {
     return nodes.flatMap((node, index, array) => {
       const htmlified = node.accept<HtmlifyResult, this>(this);
-      if (astCommon.isLastIndex(index, array)) return htmlified;
+      if (utils.isLastIndex(index, array)) return htmlified;
       return addSpace
         ? htmlified.concat(separator, g.SP)
         : htmlified.concat(separator);
@@ -146,7 +148,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   private toParameterList(
-    parameters: ReadonlyArray<astCommon.MaybeTypedIdentifier>,
+    parameters: ReadonlyArray<ast.MaybeTypedIdentifier>,
     separator = s(
       [HtmlClass.SYMBOL],
       t(this.symbols.functionParameterSeparator),
@@ -172,7 +174,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         );
       }
 
-      if (astCommon.isLastIndex(index, array)) return htmlified;
+      if (utils.isLastIndex(index, array)) return htmlified;
       return htmlified.concat(separator, g.SP);
     });
 
@@ -184,11 +186,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return firstLetter !== firstLetter.toLowerCase();
   }
 
-  visitBlankLineNode(_: astCommon.BlankLineNode): HtmlifyResult {
+  visitBlankLineNode(_: ast.BlankLineNode): HtmlifyResult {
     return [];
   }
 
-  visitCommentNode(node: astCommon.CommentNode): HtmlifyResult {
+  visitCommentNode(node: ast.CommentNode): HtmlifyResult {
     return node.comment.split('\n').flatMap((line, index, array) => {
       const commentBegin = node.isDocComment
         ? this.symbols.docCommentBegin
@@ -203,11 +205,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     });
   }
 
-  visitPlaceholderNode(_: astCommon.PlaceHolderNode): HtmlifyResult {
+  visitPlaceholderNode(_: ast.PlaceHolderNode): HtmlifyResult {
     return [this.keywordElement(this.symbols.placeholder)];
   }
 
-  visitIdentifierNode(node: astCommon.IdentifierNode): HtmlifyResult {
+  visitIdentifierNode(node: ast.IdentifierNode): HtmlifyResult {
     return [
       s(
         [HtmlClass.IDENTIFIER],
@@ -217,7 +219,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     ];
   }
 
-  visitTypeIdentifierNode(node: astCommon.TypeIdentifierNode): HtmlifyResult {
+  visitTypeIdentifierNode(node: ast.TypeIdentifierNode): HtmlifyResult {
     const typeOrGeneric = (ident: string) => {
       const htmlClass = this.startsWithCapitalLetter(ident)
         ? HtmlClass.TYPE
@@ -232,7 +234,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         this.symbolElement(this.symbols.genericsListBegin),
         ...node.generics.identifiers.flatMap((identifier, index, array) => {
           const htmlified = typeOrGeneric(identifier.name);
-          if (astCommon.isLastIndex(index, array)) return htmlified;
+          if (utils.isLastIndex(index, array)) return htmlified;
           return [
             htmlified,
             this.symbolElement(this.symbols.genericsListSeparator),
@@ -246,11 +248,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     return htmlified;
   }
 
-  visitTypeNode({ child }: astCommon.TypeNode): HtmlifyResult {
-    if (child instanceof astCommon.PathNode) {
+  visitTypeNode({ child }: ast.TypeNode): HtmlifyResult {
+    if (child instanceof ast.PathNode) {
       const { components } = child;
       return components.flatMap((component, index, array) => {
-        if (astCommon.isLastIndex(index, array))
+        if (utils.isLastIndex(index, array))
           return [s([HtmlClass.TYPE], t(component.name))];
         return [
           s([HtmlClass.MODULE], t(component.name)),
@@ -262,33 +264,33 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     }
   }
 
-  visitPathNode(node: astCommon.PathNode): HtmlifyResult {
+  visitPathNode(node: ast.PathNode): HtmlifyResult {
     return node.components.flatMap((component, index, array) => {
       const htmlified = [
         s(
           [HtmlClass.MODULE],
           t(
             this.options.uppercaseModules
-              ? astCommon.capitalizeModuleName(component.name)
+              ? utils.capitalizeModuleName(component.name)
               : component.name,
           ),
         ),
       ];
-      if (astCommon.isLastIndex(index, array)) return htmlified;
+      if (utils.isLastIndex(index, array)) return htmlified;
       return htmlified.concat(this.symbolElement(this.symbols.pathSeparator));
     });
   }
 
   visitAnonymousConstructorNode(
-    node: astCommon.AnonymousConstructorNode,
+    node: ast.AnonymousConstructorNode,
   ): HtmlifyResult {
     return new ConstructorDeclaration(
-      astCommon.ident(this.symbols.anonymousConstructorTag),
+      ast.ident(this.symbols.anonymousConstructorTag),
       node.fields,
     ).accept(this);
   }
 
-  visitGenericsListNode(node: astCommon.GenericsListNode): HtmlifyResult {
+  visitGenericsListNode(node: ast.GenericsListNode): HtmlifyResult {
     return [
       this.symbolElement(this.symbols.genericsListBegin),
       ...this.toSeparatedList(
@@ -300,7 +302,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   }
 
   visitExportedDeclarationNode(
-    node: astCommon.ExportedDeclarationNode,
+    node: ast.ExportedDeclarationNode,
   ): HtmlifyResult {
     const renameHtmlClasses = (() => {
       const isTypeDeclaration = [
@@ -345,7 +347,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     const expectedFileName = decl.path.components
       .map((component) =>
         this.options.uppercaseModules
-          ? astCommon.capitalizeModuleName(component.name)
+          ? utils.capitalizeModuleName(component.name)
           : component.name,
       )
       .join('-');
@@ -365,10 +367,10 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             a(link, [
               Boolean(decl.external) && t(this.symbols.importExternal),
               ...decl.path.components.flatMap((component, index, array) => {
-                const isLastComponent = astCommon.isLastIndex(index, array);
+                const isLastComponent = utils.isLastIndex(index, array);
                 const htmlified = t(
                   isLastComponent && this.options.uppercaseModules
-                    ? astCommon.capitalizeModuleName(component.name)
+                    ? utils.capitalizeModuleName(component.name)
                     : component.name,
                 );
                 if (isLastComponent) return htmlified;
@@ -395,13 +397,13 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
                 link,
                 t(
                   this.options.uppercaseModules
-                    ? astCommon.capitalizeModuleName(component.name)
+                    ? utils.capitalizeModuleName(component.name)
                     : component.name,
                 ),
               ),
             ),
           ];
-          if (astCommon.isLastIndex(index, array)) return htmlified;
+          if (utils.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(t(this.symbols.pathSeparator));
         }),
       );
@@ -439,7 +441,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             );
           }
 
-          if (astCommon.isLastIndex(index, array)) return stringified;
+          if (utils.isLastIndex(index, array)) return stringified;
           return stringified.concat(
             this.symbolElement(this.symbols.importExposedIdentifiersSeparator),
             g.SP,
@@ -517,7 +519,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             ...suffix.accept<HtmlifyResult, this>(this),
           ];
 
-          if (astCommon.isLastIndex(index, array)) return htmlified;
+          if (utils.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(
             this.symbolElement(this.symbols.constructorParameterSeparator),
             g.SP,
@@ -541,7 +543,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       this.symbolElement(this.symbols.constructorDeclarationBegin),
       g.SP,
       ...new ConstructorDeclaration(
-        astCommon.ident(decl.identifier.name),
+        ast.ident(decl.identifier.name),
         decl.fields,
       ).accept<HtmlifyResult, this>(this),
       g.END,
@@ -622,7 +624,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
         const strings: string[] = [];
         if (index === 0) strings.push(this.symbols.stringBegin);
         strings.push(component);
-        if (astCommon.isLastIndex(index, array))
+        if (utils.isLastIndex(index, array))
           strings.push(this.symbols.stringEnd);
         return s([HtmlClass.STRING], t(strings.join('')));
       } else {
@@ -630,7 +632,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
           this.keywordElement(this.symbols.stringInterpolationBegin),
           ...component.accept<HtmlifyResult, this>(this),
           this.keywordElement(this.symbols.stringInterpolationEnd),
-          astCommon.isLastIndex(index, array) &&
+          utils.isLastIndex(index, array) &&
             s([HtmlClass.STRING], t(this.symbols.stringEnd)),
         ];
       }
@@ -659,7 +661,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
   visitCallExpression(expr: CallExpression): HtmlifyResult {
     const htmlified: HtmlifyResult = [];
 
-    if (expr.function_ instanceof astCommon.IdentifierNode) {
+    if (expr.function_ instanceof ast.IdentifierNode) {
       htmlified.push(s([HtmlClass.FUNCTION], t(expr.function_.name)));
     } else {
       const components = expr.function_.components;
@@ -667,7 +669,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
       const lastComponent = components.at(-1);
 
       htmlified.push(
-        ...new astCommon.PathNode(allButLast).accept<HtmlifyResult, this>(this),
+        ...new ast.PathNode(allButLast).accept<HtmlifyResult, this>(this),
       );
 
       if (lastComponent) {
@@ -696,15 +698,15 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     const htmlified: HtmlifyResult = [];
     const { identifier: givenIdentifier } = expr;
 
-    if (givenIdentifier instanceof astCommon.IdentifierNode) {
+    if (givenIdentifier instanceof ast.IdentifierNode) {
       htmlified.push(s([HtmlClass.CONSTRUCTOR], t(givenIdentifier.name)));
     } else {
       givenIdentifier.components.forEach((component, index, array) => {
-        if (astCommon.isLastIndex(index, array)) {
+        if (utils.isLastIndex(index, array)) {
           htmlified.push(s([HtmlClass.CONSTRUCTOR], t(component.name)));
         } else {
           const componentName = this.options.uppercaseModules
-            ? astCommon.capitalizeModuleName(component.name)
+            ? utils.capitalizeModuleName(component.name)
             : component.name;
           htmlified.push(
             s([HtmlClass.MODULE], t(componentName)),
@@ -728,7 +730,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
               : []),
             ...argument.suffix.accept<HtmlifyResult, this>(this),
           ];
-          if (astCommon.isLastIndex(index, array)) return htmlified;
+          if (utils.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(
             this.symbolElement(this.symbols.functionParameterSeparator),
             g.SP,
@@ -847,7 +849,7 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
             ...expression.accept<HtmlifyResult, this>(this),
           ];
 
-          if (astCommon.isLastIndex(index, array)) return htmlified;
+          if (utils.isLastIndex(index, array)) return htmlified;
           return htmlified.concat(g.CONT);
         }),
         g.END,
@@ -855,11 +857,11 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
     } else {
       htmlified.push(
         g.BEGIN,
-        ...astCommon.placeholder().accept<HtmlifyResult, this>(this),
+        ...ast.placeholder().accept<HtmlifyResult, this>(this),
         g.SP,
         this.keywordElement(this.keywords.caseBranchBegin),
         g.SP,
-        ...astCommon.placeholder().accept<HtmlifyResult, this>(this),
+        ...ast.placeholder().accept<HtmlifyResult, this>(this),
         g.END,
       );
     }
@@ -877,14 +879,14 @@ type HtmlifiedModuleDictionary<K extends string> = Record<K, string>;
 type HtmlifyFileRegistry = string[];
 
 // deno-lint-ignore no-empty-interface
-interface HtmlifyOptions extends visitorCommon.AstVisitorOptions {}
+interface HtmlifyOptions extends AstVisitorOptions {}
 
 export function htmlify<K extends string = string>(
-  modules: Record<K, astCommon.Module>,
+  modules: Record<K, ast.Module>,
   options: HtmlifyOptions = {},
 ): HtmlifiedModuleDictionary<K> {
   const registry = Object.keys(modules);
-  return Object.entries<astCommon.Module>(modules).reduce<
+  return Object.entries<ast.Module>(modules).reduce<
     HtmlifiedModuleDictionary<K>
   >((acc, curr) => {
     acc[curr[0] as K] = htmlifyModule(curr[0], curr[1], options, registry);
@@ -894,24 +896,24 @@ export function htmlify<K extends string = string>(
 
 function htmlifyModule(
   moduleName: string,
-  module: astCommon.Module,
+  module: ast.Module,
   options: HtmlifyOptions,
   registry: HtmlifyFileRegistry,
 ): string {
   const table = module
     .map((nodes) => {
       return nodes.flatMap((node, index, array) => {
-        if (options.stripComments && node instanceof astCommon.CommentNode) {
+        if (options.stripComments && node instanceof ast.CommentNode) {
           return [];
         }
 
         const processed = processTopLevelNode(node, options, registry);
-        if (astCommon.isLastIndex(index, array)) return processed;
+        if (utils.isLastIndex(index, array)) return processed;
         return processed.concat(NEW_LINE);
       });
     })
     .flatMap((tokenBlock, index, array) => {
-      if (astCommon.isLastIndex(index, array)) return tokenBlock.join('');
+      if (utils.isLastIndex(index, array)) return tokenBlock.join('');
       return [tokenBlock.join(''), NEW_LINE, NEW_LINE];
     })
     .join('')
@@ -955,7 +957,7 @@ function htmlifyModule(
 }
 
 function processTopLevelNode(
-  node: astCommon.TopLevelNode,
+  node: ast.TopLevelNode,
   options: HtmlifyOptions,
   registry: HtmlifyFileRegistry,
 ): string[] {
