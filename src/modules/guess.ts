@@ -11,7 +11,6 @@ export default ast.module(
       new ast.ImportDeclaration(ast.path('core', 'result'), { external: true }),
     ]),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'A type that holds information about the game, such as the answer.',
@@ -22,7 +21,6 @@ export default ast.module(
       ast.identWithType('rounds', ast.typeIdent('Int')),
     ]),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment('The result of a game round.'),
     new ast.ProductTypeDeclaration(ast.typeIdent('Guess_Result'), [
@@ -32,7 +30,6 @@ export default ast.module(
       new ast.ConstructorDeclaration(ast.ident('Quit'), []),
     ]),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'A pure function that checks whether or not the provided number is equal to',
@@ -81,7 +78,6 @@ export default ast.module(
       ]),
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'The main driver of the game.',
@@ -116,7 +112,7 @@ export default ast.module(
           new ast.BlockExpression([
             new ast.BinaryExpression(
               '|>',
-              new ast.CallExpression(ast.path('io', 'readline'), []),
+              new ast.CallExpression(ast.path('io', 'read_line'), []),
               new ast.BinaryExpression(
                 '|>',
                 new ast.CallExpression(ast.path('result', 'map'), [
@@ -234,7 +230,6 @@ export default ast.module(
       ]),
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'The entry point of the guessing game.',

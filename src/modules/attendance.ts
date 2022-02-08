@@ -7,7 +7,6 @@ export default ast.module(
       new ast.ImportDeclaration(ast.path('core', 'option'), { external: true }),
     ]),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'The student ID type, internally represented as a `String`.',
@@ -17,7 +16,6 @@ export default ast.module(
       ast.typeIdent('String'),
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment('A student to mark attendance for.'),
     new ast.SumTypeDeclaration(ast.typeIdent('Student'), [
@@ -25,7 +23,6 @@ export default ast.module(
       ast.identWithType('full_name', ast.typeIdent('String')),
     ]),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment('A mapping of student IDs and their attendance statuses.'),
     new ast.TypeAliasDeclaration(
@@ -33,7 +30,6 @@ export default ast.module(
       ast.typeIdent('Map', ['Student_Id', 'Student']),
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment('Mark the given student as attendance.'),
     new ast.FunctionDeclaration(
@@ -55,7 +51,6 @@ export default ast.module(
       ]),
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'Determines whether or not the provided student has attended class.',

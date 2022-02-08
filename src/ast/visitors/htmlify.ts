@@ -870,6 +870,9 @@ export class HtmlifyVisitor extends visitorCommon.AstVisitor<HtmlifyResult> {
 
 // -----------------------------------------------------------------------------
 
+const NEW_LINE = '&NewLine;';
+const NON_BREAKING_SPACE = '&nbsp;';
+
 type HtmlifiedModuleDictionary<K extends string> = Record<K, string>;
 type HtmlifyFileRegistry = string[];
 
@@ -895,26 +898,30 @@ function htmlifyModule(
   options: HtmlifyOptions,
   registry: HtmlifyFileRegistry,
 ): string {
-  let processedModule: astCommon.Module;
+  const table = module
+    .map((nodes) => {
+      return nodes.flatMap((node, index, array) => {
+        if (options.stripComments && node instanceof astCommon.CommentNode) {
+          return [];
+        }
 
-  if (options.stripComments) {
-    processedModule = module.filter(
-      (item) => !(item instanceof astCommon.CommentNode),
-    );
-  } else {
-    processedModule = module;
-  }
-
-  const table = processedModule
-    .flatMap((node) => processNode(node, options, registry).concat(sigils.NL))
+        const processed = processTopLevelNode(node, options, registry);
+        if (astCommon.isLastIndex(index, array)) return processed;
+        return processed.concat(NEW_LINE);
+      });
+    })
+    .flatMap((tokenBlock, index, array) => {
+      if (astCommon.isLastIndex(index, array)) return tokenBlock.join('');
+      return [tokenBlock.join(''), NEW_LINE, NEW_LINE];
+    })
     .join('')
-    .trim()
-    .split('\n')
-    .concat('\n')
+    .split(NEW_LINE)
+    .concat(NEW_LINE)
     .map((line, index) => {
       const lineNumber = index + 1;
-      const isLineEmpty = line.replaceAll('&nbsp;', ' ').trim().length === 0;
-      const lineContent = isLineEmpty ? '&NewLine;' : line;
+      const isLineEmpty =
+        line.replace(NON_BREAKING_SPACE, ' ').trim().length === 0;
+      const lineContent = isLineEmpty ? NEW_LINE : line;
       return [
         `<tr>`,
         `<td id="L${lineNumber}" class="blob number" data-line-number="${lineNumber}"></td>`,
@@ -927,111 +934,88 @@ function htmlifyModule(
   return [
     `<!DOCTYPE html>`,
     `<html lang="en">`,
-    `<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${moduleName}.${FILE_EXTENSION}</title><link rel="stylesheet" href="lang.css" /><link rel="apple-touch-icon" href="favicon.png" /><link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico" /></head>`,
+    `<head>`,
+    `<meta charset="UTF-8" />`,
+    `<meta http-equiv="X-UA-Compatible" content="IE=edge" />`,
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0" />`,
+    `<title>${moduleName}.${FILE_EXTENSION}</title>`,
+    `<link rel="stylesheet" href="lang.css" />`,
+    `<link rel="apple-touch-icon" href="favicon.png" />`,
+    `<link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico" />`,
+    `</head>`,
     `<body>`,
-    `<table><tbody>`,
+    `<table>`,
+    `<tbody>`,
     table,
-    `</tbody></table>`,
+    `</tbody>`,
+    `</table>`,
     `</body>`,
     `</html>`,
   ].join('');
 }
 
-function processNode(
+function processTopLevelNode(
   node: astCommon.TopLevelNode,
   options: HtmlifyOptions,
   registry: HtmlifyFileRegistry,
-) {
+): string[] {
   const visitor = new HtmlifyVisitor(options, registry);
-  const tokens = node
+  const htmlified = node
     .accept<HtmlifyResult, typeof visitor>(visitor)
     .filter((token): token is HtmlElement => Boolean(token));
 
-  return htmlElementsToStrings(tokens, options.indentationCount ?? 2);
+  return [...processHtmlified(htmlified, options.indentationCount ?? 2)];
 }
 
-function htmlElementsToStrings(
+function* processHtmlified(
   elements: HtmlElement[],
   indentationCount: number,
-) {
-  let currIndent = 0;
-  const processed: string[] = [];
-  const htmlElements = Array.isArray(elements) ? elements : [elements];
+  currIndent = 0,
+): Generator<string> {
+  function* indent(level: number) {
+    yield NEW_LINE;
+    yield NON_BREAKING_SPACE.repeat(level);
+  }
 
-  function visitHtmlElement(element: HtmlElement) {
-    switch (element.tag) {
-      case 'sigil': {
-        if (element === g.SP) {
-          processed.push('&nbsp;');
-          return;
-        }
-
-        if (element === g.NL) {
-          processed.push(sigils.NL);
-        } else if (element === g.BEGIN) {
-          currIndent += indentationCount;
-          processed.push(sigils.NL, indent(currIndent));
-        } else if (element === g.CONT) {
-          processed.push(sigils.NL, indent(currIndent));
-        } else if (element === g.END) {
-          // We won't do anything special with END tokens other than
-          // decrementing the current indentation level
-          currIndent = Math.max(0, currIndent - indentationCount);
-        } else if (element === g.RESET) {
-          currIndent = 0;
-          processed.push(sigils.NL, indent(currIndent));
-        } else {
-          return;
-        }
-
-        break;
-      }
-      case 'span': {
-        /* if (element.tooltipText) {
-          const classes = element.classes.join(' ');
-          const tooltipText = element.tooltipText;
-          processed.push(
-            `<span class="${classes} tooltip" data-tooltip-text="${tooltipText}">`,
-          );
-        } else */ {
-          processed.push(`<span class="${element.classes.join(' ')}">`);
-        }
-        if (element.children) {
-          if (Array.isArray(element.children)) {
-            element.children.forEach(visitHtmlElement);
-          } else {
-            visitHtmlElement(element.children);
-          }
-        }
-        processed.push(`</span>`);
-        break;
-      }
-      case 'link': {
-        processed.push(`<a href="${element.link}">`);
-        if (element.children) {
-          if (Array.isArray(element.children)) {
-            element.children.forEach(visitHtmlElement);
-          } else {
-            visitHtmlElement(element.children);
-          }
-        }
-        processed.push(`</a>`);
-        break;
-      }
-      case 'text': /* FALLTHROUGH */
-      default:
-        processed.push(escapeHtml(element.text).replaceAll(' ', '&nbsp;'));
-        break;
+  function* processElementChildren(
+    children: HtmlElement[] | undefined,
+    currIndent: number,
+  ) {
+    if (children && children.length > 0) {
+      yield* processHtmlified(children, currIndent);
     }
   }
 
-  for (const element of htmlElements) {
-    visitHtmlElement(element);
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i];
+    if (element.tag === 'sigil') {
+      if (element === g.SP) {
+        yield NON_BREAKING_SPACE;
+      } else if (element === g.NL) {
+        yield NEW_LINE;
+      } else if (element === g.BEGIN) {
+        currIndent += indentationCount;
+        yield* indent(currIndent);
+      } else if (element === g.CONT) {
+        yield* indent(currIndent);
+      } else if (element === g.END) {
+        // We won't do anything special with END tokens other than decrementing
+        // the current indentation level.
+        currIndent = Math.max(0, currIndent - indentationCount);
+      } else if (element === g.RESET) {
+        currIndent = 0;
+        yield NEW_LINE;
+      }
+    } else if (element.tag === 'span') {
+      yield `<span class="${element.classes.join(' ')}">`;
+      yield* processElementChildren(element.children, currIndent);
+      yield `</span>`;
+    } else if (element.tag === 'link') {
+      yield `<a href="${element.link}">`;
+      yield* processElementChildren(element.children, currIndent);
+      yield `</a>`;
+    } else {
+      yield escapeHtml(element.text).replaceAll(' ', NON_BREAKING_SPACE);
+    }
   }
-
-  return processed;
-}
-
-function indent(times: number) {
-  return '&nbsp;'.repeat(Math.max(0, times));
 }

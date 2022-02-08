@@ -135,7 +135,7 @@ export type IdentifierWithSuffix<T> = { identifier: IdentifierNode; suffix: T };
 export type AlwaysTypedIdentifier = IdentifierWithSuffix<TypeNode>;
 export type MaybeTypedIdentifier = IdentifierWithSuffix<TypeNodeOrNull>;
 
-export type Module = TopLevelNode[];
+export type Module = ReadonlyArray<ReadonlyArray<TopLevelNode>>;
 export type TopLevelNode = CommentNode | Declaration;
 
 export function capitalizeModuleName(string: string): string {
@@ -149,8 +149,7 @@ export function isLastIndex(index: number, array: readonly any[]): boolean {
 
 export const placeholder = () => new PlaceHolderNode();
 
-export const module = (...nodes: (TopLevelNode | TopLevelNode[])[]): Module =>
-  nodes.flat();
+export const module = (...nodes: TopLevelNode[][]): Module => nodes;
 
 export const comment = (...contents: string[]): CommentNode =>
   new CommentNode(contents.join('\n'));

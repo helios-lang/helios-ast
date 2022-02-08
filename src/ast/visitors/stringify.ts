@@ -619,43 +619,42 @@ export function stringify(
   module: astCommon.Module,
   options: StringifyOptions = {},
 ): string {
-  let processedModule: astCommon.Module;
+  return module
+    .map((nodes) => {
+      return nodes.flatMap((node, index, array) => {
+        if (options.stripComments && node instanceof astCommon.CommentNode) {
+          return [];
+        }
 
-  if (options.stripComments) {
-    processedModule = module.filter(
-      (item) => !(item instanceof astCommon.CommentNode),
-    );
-  } else {
-    processedModule = module;
-  }
-
-  return processedModule
-    .flatMap((node) => processIndentsForNode(node, options).concat(sigils.NL))
-    .join('')
-    .trim();
+        const processed = processTopLevelNode(node, options);
+        if (astCommon.isLastIndex(index, array)) return processed;
+        return processed.concat(sigils.NL);
+      });
+    })
+    .map((tokenBlock) => tokenBlock.join(''))
+    .flatMap((block, index, array) => {
+      if (astCommon.isLastIndex(index, array)) return block;
+      return [block, sigils.NL, sigils.NL];
+    })
+    .join('');
 }
 
-function processIndentsForNode(
+function processTopLevelNode(
   node: astCommon.TopLevelNode,
   options: StringifyOptions,
-) {
+): string[] {
   const visitor = new StringifyVisitor(options);
-  const tokens = node
+  const stringified = node
     .accept<StringifyResult, typeof visitor>(visitor)
     .filter((token): token is string => Boolean(token));
 
-  const processedTokens: string[] = [];
-  for (const token of processIndentsGenerator(
-    tokens,
-    options.indentationCount ?? 2,
-  )) {
-    processedTokens.push(token);
-  }
-
-  return processedTokens;
+  return [...processStringified(stringified, options.indentationCount ?? 2)];
 }
 
-function* processIndentsGenerator(tokens: string[], indentationCount: number) {
+function* processStringified(
+  tokens: string[],
+  indentationCount: number,
+): Generator<string> {
   let currIndent = 0;
   for (const token of tokens) {
     if (!token.startsWith('<!--')) {

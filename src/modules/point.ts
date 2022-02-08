@@ -7,7 +7,6 @@ export default ast.module(
       new ast.ImportDeclaration(ast.path('core', 'math'), { external: true }),
     ]),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment('A representation of a point in two-dimensional space.'),
     new ast.ExportedDeclarationNode(
@@ -18,7 +17,6 @@ export default ast.module(
       'T',
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'Calculates the distance between two `Point`s.',
@@ -73,7 +71,6 @@ export default ast.module(
       ),
     ),
   ],
-  new ast.BlankLineNode(),
   [
     ast.docComment(
       'This function accepts any value with `x`, `y` and `z` fields and calculates',
