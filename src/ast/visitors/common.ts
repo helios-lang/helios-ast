@@ -45,8 +45,8 @@ export interface ConfigurableAstVisitorOptions {
   indentationCount?: number;
 
   /**
-   * Whether or not to add trailing separators (for example `","`) at the end of
-   * list-like nodes (for example function parameters).
+   * Whether or not to add trailing separators (e.g. `","`) at the end of
+   * list-like nodes (e.g. function parameters).
    *
    * @default false
    */

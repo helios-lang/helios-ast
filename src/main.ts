@@ -10,19 +10,14 @@ import pointModule from './modules/point.ts';
 async function main() {
   const options: ast.AstVisitorOptions = {
     stringImports: true,
-    importWithFileExtension: true,
     preferTrailingSeparators: true,
-    uppercaseModules: true,
-    symbols: {
-      // pathSeparator: '::',
-    },
   };
 
   const modules = {
-    Main: mainModule,
-    Attendance: attendanceModule,
-    Guess: guessModule,
-    Point: pointModule,
+    main: mainModule,
+    attendance: attendanceModule,
+    guess: guessModule,
+    point: pointModule,
   };
 
   for (const [filename, module] of Object.entries(modules)) {
@@ -34,7 +29,7 @@ async function main() {
   await Promise.all(
     Object.entries(ast.htmlify(modules, options)).map(
       async ([filename, contents]) => {
-        const processedFilename = filename.split('.')[0];
+        const processedFilename = filename.split('.')[0].toLowerCase();
         const path = `./out/${processedFilename}.${ast.FILE_EXTENSION}.html`;
         await fs.ensureFile(path);
         await Deno.writeTextFile(path, contents);

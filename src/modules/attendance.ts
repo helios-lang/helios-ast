@@ -57,17 +57,24 @@ export default ast.module(
     ),
     new ast.FunctionDeclaration(
       ast.ident('is_present'),
-      [ast.identWithType('student', ast.typeIdent('Student'))],
+      [
+        ast.identWithType('record', ast.typeIdent('Attendance_Record')),
+        ast.identWithType('student', ast.typeIdent('Student')),
+      ],
       ast.type(ast.typeIdent('Bool')),
       new ast.BlockExpression([
         new ast.BinaryExpression(
           '|>',
-          new ast.CallExpression(ast.path('map', 'get'), [
-            new ast.DotExpression([ast.ident('student'), ast.ident('id')]),
-          ]),
-          new ast.CallExpression(ast.path('option', 'or_else'), [
-            ast.literal(false),
-          ]),
+          ast.ident('record'),
+          new ast.BinaryExpression(
+            '|>',
+            new ast.CallExpression(ast.path('map', 'get'), [
+              new ast.DotExpression([ast.ident('student'), ast.ident('id')]),
+            ]),
+            new ast.CallExpression(ast.path('option', 'or_else'), [
+              ast.literal(false),
+            ]),
+          ),
         ),
       ]),
     ),

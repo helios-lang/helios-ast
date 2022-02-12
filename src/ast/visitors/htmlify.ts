@@ -133,6 +133,12 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
     return s([HtmlClass.SYMBOL], t(symbol));
   }
 
+  private pathSeparator(): HtmlElement {
+    return this.options.pathSeparatorClass
+      ? s([this.options.pathSeparatorClass], t(this.symbols.pathSeparator))
+      : t(this.symbols.pathSeparator);
+  }
+
   private toSeparatedList(
     nodes: ReadonlyArray<ast.AstNode>,
     separator = s([HtmlClass.SYMBOL], t(this.symbols.listSeparator)),
@@ -254,10 +260,7 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
       return components.flatMap((component, index, array) => {
         if (utils.isLastIndex(index, array))
           return [s([HtmlClass.TYPE], t(component.name))];
-        return [
-          s([HtmlClass.MODULE], t(component.name)),
-          this.symbolElement(this.symbols.pathSeparator),
-        ];
+        return [s([HtmlClass.MODULE], t(component.name)), this.pathSeparator()];
       });
     } else {
       return child.accept<HtmlifyResult, this>(this);
@@ -277,7 +280,7 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
         ),
       ];
       if (utils.isLastIndex(index, array)) return htmlified;
-      return htmlified.concat(this.symbolElement(this.symbols.pathSeparator));
+      return htmlified.concat(this.pathSeparator());
     });
   }
 
@@ -345,11 +348,7 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
 
     let link: string;
     const expectedFileName = decl.path.components
-      .map((component) =>
-        this.options.uppercaseModules
-          ? utils.capitalizeModuleName(component.name)
-          : component.name,
-      )
+      .map((component) => component.name.toLowerCase())
       .join('-');
 
     if (this.registry.includes(expectedFileName)) {
@@ -385,7 +384,10 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
       );
     } else {
       if (decl.external) {
-        importContents.push(this.keywordElement('library'), g.SP);
+        importContents.push(
+          this.keywordElement(this.keywords.externalImport),
+          g.SP,
+        );
       }
 
       importContents.push(
@@ -404,7 +406,7 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
             ),
           ];
           if (utils.isLastIndex(index, array)) return htmlified;
-          return htmlified.concat(t(this.symbols.pathSeparator));
+          return htmlified.concat(this.pathSeparator());
         }),
       );
     }
@@ -674,7 +676,7 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
 
       if (lastComponent) {
         htmlified.push(
-          this.symbolElement(this.symbols.pathSeparator),
+          this.pathSeparator(),
           s([HtmlClass.FUNCTION], t(lastComponent.name)),
         );
       }
@@ -710,7 +712,7 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
             : component.name;
           htmlified.push(
             s([HtmlClass.MODULE], t(componentName)),
-            this.symbolElement(this.symbols.pathSeparator),
+            this.pathSeparator(),
           );
         }
       });
@@ -878,8 +880,9 @@ const NON_BREAKING_SPACE = '&nbsp;';
 type HtmlifiedModuleDictionary<K extends string> = Record<K, string>;
 type HtmlifyFileRegistry = string[];
 
-// deno-lint-ignore no-empty-interface
-interface HtmlifyOptions extends AstVisitorOptions {}
+interface HtmlifyOptions extends AstVisitorOptions {
+  pathSeparatorClass?: HtmlClass;
+}
 
 export function htmlify<K extends string = string>(
   modules: Record<K, ast.Module>,

@@ -8,6 +8,7 @@ export const keyword = {
   caseOf: 'of',
   export: 'export',
   exportAs: 'as',
+  externalImport: 'library',
   function: 'define',
   ifBegin: 'if',
   ifElse: 'else',
