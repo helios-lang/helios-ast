@@ -29,11 +29,64 @@ import {
 } from '../expr.ts';
 
 export interface ConfigurableAstVisitorOptions {
+  /**
+   * Whether or not imports should include the file extension `".he"` at the
+   * end. This only applies to string imports.
+   *
+   * @default false
+   */
   importWithFileExtension?: boolean;
+
+  /**
+   * The indentation size in terms of the count of space characters.
+   *
+   * @default 2
+   */
   indentationCount?: number;
+
+  /**
+   * Whether or not to add trailing separators (for example `","`) at the end of
+   * list-like nodes (for example function parameters).
+   *
+   * @default false
+   */
   preferTrailingSeparators?: boolean;
+
+  /**
+   * Whether or not to use the string version of imports.
+   *
+   * This type of imports allow relative access just like in UNIX shell. For
+   * example, with this option disabled, imports will look like:
+   *
+   * ```
+   * import foo.bar
+   * ```
+   *
+   * Otherwise, they will look like this with this option turned on:
+   *
+   * ```
+   * import "foo/bar"
+   * ```
+   *
+   * Refer to `importWithFileExtension` to determine whether file extensions are
+   * included in string imports.
+   *
+   * @default false
+   */
   stringImports?: boolean;
+
+  /**
+   * Whether or not to remove all types of comments from the final output.
+   *
+   * @default false
+   */
   stripComments?: boolean;
+
+  /**
+   * Whether or not to prefer uppercased versions of module identifiers.
+   *
+   * @default false
+   */
   uppercaseModules?: boolean;
 }
 
