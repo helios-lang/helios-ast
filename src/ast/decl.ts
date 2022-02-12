@@ -88,7 +88,7 @@ export class FunctionDeclaration extends Declaration {
 export class ConstructorDeclaration extends Declaration {
   constructor(
     readonly identifier: IdentifierNode,
-    readonly parameters: ReadonlyArray<AlwaysTypedIdentifier>,
+    readonly parameters: ReadonlyArray<AlwaysTypedIdentifier> = [],
   ) {
     super();
   }

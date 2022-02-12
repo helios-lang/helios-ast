@@ -173,6 +173,24 @@ export class BinaryExpression extends Expression {
   }
 }
 
+type ChainExpressionRestElement = readonly [Operator, Expression];
+type ChainExpressionRest = ReadonlyArray<ChainExpressionRestElement>;
+
+export class ChainExpression extends Expression {
+  readonly head: Expression;
+  readonly rest: ChainExpressionRest;
+
+  constructor(head: Expression, ...rest: ChainExpressionRest) {
+    super();
+    this.head = head;
+    this.rest = rest;
+  }
+
+  accept<R, V extends AstVisitor<R>>(visitor: V): R {
+    return visitor.visitChainExpression(this);
+  }
+}
+
 export class BlockExpression extends Expression {
   constructor(readonly items: ReadonlyArray<Declaration | Expression>) {
     super();

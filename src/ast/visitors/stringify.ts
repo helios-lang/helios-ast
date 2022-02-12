@@ -21,6 +21,7 @@ import {
   BlockExpression,
   CallExpression,
   CaseExpression,
+  ChainExpression,
   ConstructorExpression,
   DotExpression,
   IfExpression,
@@ -516,6 +517,23 @@ export class StringifyVisitor extends AstVisitor<StringifyResult> {
       expr.operator,
       sigils.SP,
       ...expr.rhs.accept<StringifyResult, this>(this),
+    ];
+  }
+
+  visitChainExpression(expr: ChainExpression): StringifyResult {
+    return [
+      ...expr.head.accept<StringifyResult, this>(this),
+      sigils.BEGIN,
+      ...expr.rest.flatMap(([operator, expression], index, array) => {
+        const stringified: StringifyResult = [
+          operator,
+          sigils.SP,
+          ...expression.accept<StringifyResult, this>(this),
+        ];
+        if (utils.isLastIndex(index, array)) return stringified;
+        return stringified.concat(sigils.CONT);
+      }),
+      sigils.END,
     ];
   }
 

@@ -2,6 +2,13 @@ import * as ast from '../ast/mod.ts';
 
 export default ast.module(
   [
+    // Language name examples
+    ast.comment('Helios [*.he]    | helios helios-ls helios-fmt vscode-helios'),
+    ast.comment('Lipi   [*.lipi]  | lipi lipi-ls lipi-fmt vscode-lipi'),
+    ast.comment('Mink   [*.mink]  | mink mink-ls mink-fmt vscode-mink'),
+    ast.comment('Chalk  [*.chalk] | chalk chalk-ls chalk-fmt vscode-chalk'),
+  ],
+  [
     ast.comment('Importing modules from the standard library'),
     new ast.ImportDeclarationGroup([
       new ast.ImportDeclaration(ast.path('core', 'io'), { external: true }),

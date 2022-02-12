@@ -110,25 +110,27 @@ export default ast.module(
           ast.ident('result'),
           ast.inferredType(),
           new ast.BlockExpression([
-            new ast.BinaryExpression(
-              '|>',
+            new ast.ChainExpression(
               new ast.CallExpression(ast.path('io', 'read_line'), []),
-              new ast.BinaryExpression(
+              [
                 '|>',
                 new ast.CallExpression(ast.path('result', 'map'), [
                   new ast.CallExpression(ast.path('string', 'trim')),
                 ]),
-                new ast.BinaryExpression(
-                  '|>',
-                  new ast.CallExpression(ast.path('result', 'map'), [
-                    new ast.CallExpression(ast.path('int', 'parse')),
-                  ]),
-                  new ast.CallExpression(ast.ident('check_number'), [
-                    ast.ident('game'),
-                    ast.ident('_'),
-                  ]),
-                ),
-              ),
+              ],
+              [
+                '|>',
+                new ast.CallExpression(ast.path('result', 'map'), [
+                  new ast.CallExpression(ast.path('int', 'parse')),
+                ]),
+              ],
+              [
+                '|>',
+                new ast.CallExpression(ast.ident('check_number'), [
+                  ast.ident('game'),
+                  ast.ident('_'),
+                ]),
+              ],
             ),
           ]),
         ),

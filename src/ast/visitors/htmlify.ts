@@ -23,6 +23,7 @@ import {
   BlockExpression,
   CallExpression,
   CaseExpression,
+  ChainExpression,
   ConstructorExpression,
   DotExpression,
   IfExpression,
@@ -777,6 +778,23 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
       this.symbolElement(expr.operator),
       g.SP,
       ...expr.rhs.accept<HtmlifyResult, this>(this),
+    ];
+  }
+
+  visitChainExpression(expr: ChainExpression): HtmlifyResult {
+    return [
+      ...expr.head.accept<HtmlifyResult, this>(this),
+      g.BEGIN,
+      ...expr.rest.flatMap(([operator, expression], index, array) => {
+        const stringified: HtmlifyResult = [
+          this.symbolElement(operator),
+          g.SP,
+          ...expression.accept<HtmlifyResult, this>(this),
+        ];
+        if (utils.isLastIndex(index, array)) return stringified;
+        return stringified.concat(g.CONT);
+      }),
+      g.END,
     ];
   }
 
