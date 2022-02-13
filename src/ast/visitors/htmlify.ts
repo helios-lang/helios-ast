@@ -392,23 +392,25 @@ export class HtmlifyVisitor extends AstVisitor<HtmlifyResult> {
       }
 
       importContents.push(
-        ...decl.path.components.flatMap((component, index, array) => {
-          const htmlified = [
-            s(
-              [HtmlClass.MODULE],
-              a(
-                link,
-                t(
-                  this.options.uppercaseModules
-                    ? utils.capitalizeModuleName(component.name)
-                    : component.name,
-                ),
-              ),
+        s(
+          [HtmlClass.MODULE],
+          [
+            a(
+              link,
+              decl.path.components.flatMap((component, index, array) => {
+                const htmlified: HtmlifyResult = [
+                  t(
+                    this.options.uppercaseModules
+                      ? utils.capitalizeModuleName(component.name)
+                      : component.name,
+                  ),
+                ];
+                if (utils.isLastIndex(index, array)) return htmlified;
+                return htmlified.concat(t(this.symbols.pathSeparator));
+              }),
             ),
-          ];
-          if (utils.isLastIndex(index, array)) return htmlified;
-          return htmlified.concat(this.pathSeparator());
-        }),
+          ],
+        ),
       );
     }
 

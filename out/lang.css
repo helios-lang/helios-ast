@@ -3,7 +3,6 @@ body {
   justify-content: center;
   height: 100%;
   margin: 0;
-  font-size: 1.1rem;
   line-height: 1.1;
   padding: 32px 32px;
 }
@@ -32,7 +31,9 @@ tbody { vertical-align: top; }
 tr:first-child { margin-top: 10px; }
 
 td { white-space: pre; }
-td.blob { font-family: "Ubuntu Mono", monospace; }
+td.blob {
+  font-family: "Ubuntu Mono", monospace;
+}
 
 td.number::before { content: attr(data-line-number); }
 td.number {

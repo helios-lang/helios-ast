@@ -9,8 +9,10 @@ import pointModule from './modules/point.ts';
 
 async function main() {
   const options: ast.AstVisitorOptions = {
-    stringImports: true,
+    importWithFileExtension: true,
     preferTrailingSeparators: true,
+    stringImports: true,
+    uppercaseModules: true,
   };
 
   const modules = {
