@@ -7,23 +7,23 @@ import {
   MaybeTypedIdentifier,
   Module,
   PathNode,
-  PlaceHolderNode,
+  PlaceholderNode,
   TopLevelNode,
   TypeIdentifierNode,
   TypeNode,
-  TypeNodeChild,
+  TypeNodeContent,
   TypeNodeOrNull,
 } from './common.ts';
 
-export const placeholder = () => new PlaceHolderNode();
+export const placeholder = () => new PlaceholderNode();
 
 export const module = (...nodes: TopLevelNode[][]): Module => nodes;
 
-export const comment = (...contents: string[]): CommentNode =>
-  new CommentNode(contents.join('\n'));
+export const comment = (...lines: string[]): CommentNode =>
+  new CommentNode(lines.join('\n'));
 
-export const docComment = (...contents: string[]): CommentNode =>
-  new CommentNode(contents.join('\n'), true);
+export const docComment = (...lines: string[]): CommentNode =>
+  new CommentNode(lines.join('\n'), true);
 
 export const ident = (identifier: string): IdentifierNode =>
   new IdentifierNode(identifier as Identifier);
@@ -42,7 +42,7 @@ export const typeIdent = (
 export const path = (head: string, ...tail: string[]): PathNode =>
   new PathNode([head, ...tail].map(ident));
 
-export function type(child: TypeNodeChild): TypeNode {
+export function type(child: TypeNodeContent): TypeNode {
   return new TypeNode(child);
 }
 
@@ -50,14 +50,14 @@ export const inferredType = (): TypeNodeOrNull => null;
 
 export function identWithType(
   identifier: string,
-  child: TypeNodeChild,
+  child: TypeNodeContent,
 ): AlwaysTypedIdentifier {
   return { identifier: ident(identifier), suffix: type(child) };
 }
 
 export function identWithOptType(
   identifier: string,
-  child: TypeNodeChild | null = null,
+  child: TypeNodeContent | null = null,
 ): MaybeTypedIdentifier {
   return {
     identifier: ident(identifier),

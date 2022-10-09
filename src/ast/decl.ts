@@ -41,8 +41,8 @@ export class ImportDeclaration extends Declaration {
     this.exposedIdentifiers = exposedIdentifiers;
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitImportDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitImportDeclaration(this);
   }
 }
 
@@ -51,8 +51,8 @@ export class ImportDeclarationGroup extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitImportDeclarationGroup(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitImportDeclarationGroup(this);
   }
 }
 
@@ -65,8 +65,8 @@ export class BindingDeclaration extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitBindingDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitBindingDeclaration(this);
   }
 }
 
@@ -80,8 +80,8 @@ export class FunctionDeclaration extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitFunctionDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitFunctionDeclaration(this);
   }
 }
 
@@ -93,8 +93,8 @@ export class ConstructorDeclaration extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitConstructorDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitConstructorDeclaration(this);
   }
 }
 
@@ -106,8 +106,8 @@ export class SumTypeDeclaration extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitSumTypeDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitSumTypeDeclaration(this);
   }
 }
 
@@ -119,8 +119,8 @@ export class ProductTypeDeclaration extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitProductTypeDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitProductTypeDeclaration(this);
   }
 }
 
@@ -132,7 +132,7 @@ export class TypeAliasDeclaration extends Declaration {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitTypeAliasDeclaration(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitTypeAliasDeclaration(this);
   }
 }

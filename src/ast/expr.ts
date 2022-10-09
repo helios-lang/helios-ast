@@ -78,8 +78,8 @@ export class LiteralExpression extends Expression {
     return new LiteralExpression({ kind: 'string', value });
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitLiteralExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitLiteralExpression(this);
   }
 }
 
@@ -88,8 +88,8 @@ export class InterpolatedStringExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitInterpolatedStringExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitInterpolatedStringExpression(this);
   }
 }
 
@@ -98,8 +98,8 @@ export class TupleExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitTupleExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitTupleExpression(this);
   }
 }
 
@@ -108,8 +108,8 @@ export class ListExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitListExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitListExpression(this);
   }
 }
 
@@ -121,8 +121,8 @@ export class CallExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitCallExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitCallExpression(this);
   }
 }
 
@@ -134,8 +134,8 @@ export class ConstructorExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitConstructorExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitConstructorExpression(this);
   }
 }
 
@@ -144,8 +144,8 @@ export class DotExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitDotExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitDotExpression(this);
   }
 }
 
@@ -154,8 +154,8 @@ export class UnaryExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitUnaryExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitUnaryExpression(this);
   }
 }
 
@@ -168,8 +168,8 @@ export class BinaryExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitBinaryExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitBinaryExpression(this);
   }
 }
 
@@ -186,8 +186,8 @@ export class ChainExpression extends Expression {
     this.rest = rest;
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitChainExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitChainExpression(this);
   }
 }
 
@@ -196,8 +196,8 @@ export class BlockExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitBlockExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitBlockExpression(this);
   }
 }
 
@@ -210,8 +210,8 @@ export class LambdaExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitLambdaExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitLambdaExpression(this);
   }
 }
 
@@ -224,8 +224,8 @@ export class IfExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitIfExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitIfExpression(this);
   }
 }
 
@@ -239,7 +239,7 @@ export class CaseExpression extends Expression {
     super();
   }
 
-  accept<R, V extends AstVisitor<R>>(visitor: V): R {
-    return visitor.visitCaseExpression(this);
+  *accept<R, V extends AstVisitor<R>>(visitor: V): Generator<R> {
+    yield* visitor.visitCaseExpression(this);
   }
 }
